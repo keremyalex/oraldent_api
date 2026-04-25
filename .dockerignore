@@ -1,0 +1,8 @@
+.git
+.idea
+frontend
+target
+HELP.md
+*.log
+node_modules
+dist
