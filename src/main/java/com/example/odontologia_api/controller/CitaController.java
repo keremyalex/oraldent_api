@@ -6,6 +6,8 @@ import com.example.odontologia_api.dto.DisponibilidadResponse;
 import com.example.odontologia_api.dto.GestionCitaRequest;
 import com.example.odontologia_api.dto.ReprogramarCitaRequest;
 import com.example.odontologia_api.service.CitaService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import java.time.LocalDate;
 import java.util.List;
@@ -25,6 +27,7 @@ import org.springframework.web.bind.annotation.RestController;
 @CrossOrigin
 @RestController
 @RequestMapping("/api/citas")
+@Tag(name = "Citas", description = "Operaciones para gestionar citas odontologicas")
 public class CitaController {
 
     private final CitaService citaService;
@@ -34,6 +37,7 @@ public class CitaController {
     }
 
     @GetMapping
+    @Operation(summary = "Listar citas por fecha")
     public List<CitaResponse> listar(
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fecha
     ) {
@@ -41,22 +45,26 @@ public class CitaController {
     }
 
     @GetMapping("/{id}")
+    @Operation(summary = "Obtener una cita por id")
     public CitaResponse obtener(@PathVariable Long id) {
         return citaService.obtener(id);
     }
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
+    @Operation(summary = "Registrar una cita")
     public CitaResponse crear(@Valid @RequestBody CitaRequest request) {
         return citaService.crear(request);
     }
 
     @PutMapping("/{id}/cancelar")
+    @Operation(summary = "Cancelar una cita usando codigo de gestion")
     public CitaResponse cancelar(@PathVariable Long id, @Valid @RequestBody GestionCitaRequest request) {
         return citaService.cancelar(id, request.codigoGestion());
     }
 
     @PutMapping("/{id}/reprogramar")
+    @Operation(summary = "Reprogramar una cita usando codigo de gestion")
     public CitaResponse reprogramar(
             @PathVariable Long id,
             @RequestParam String codigoGestion,
@@ -66,6 +74,7 @@ public class CitaController {
     }
 
     @GetMapping("/disponibilidad")
+    @Operation(summary = "Consultar horarios disponibles por fecha")
     public DisponibilidadResponse disponibilidad(
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fecha
     ) {

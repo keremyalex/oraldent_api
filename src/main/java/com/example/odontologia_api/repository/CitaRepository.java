@@ -12,6 +12,10 @@ import org.springframework.data.repository.query.Param;
 
 public interface CitaRepository extends JpaRepository<Cita, Long> {
 
+    boolean existsByCodigoGestion(String codigoGestion);
+
+    List<Cita> findAllByOrderByFechaHoraInicioAsc();
+
     List<Cita> findByFechaHoraInicioBetweenOrderByFechaHoraInicioAsc(LocalDateTime inicio, LocalDateTime fin);
 
     Optional<Cita> findByIdAndCodigoGestion(Long id, String codigoGestion);

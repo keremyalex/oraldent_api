@@ -2,6 +2,7 @@ package com.example.odontologia_api.service;
 
 import com.example.odontologia_api.dto.PacienteRequest;
 import com.example.odontologia_api.dto.PacienteResponse;
+import com.example.odontologia_api.dto.RegisterPacienteRequest;
 import com.example.odontologia_api.entity.Paciente;
 import com.example.odontologia_api.exception.RecursoNoEncontradoException;
 import com.example.odontologia_api.repository.PacienteRepository;
@@ -71,6 +72,35 @@ public class PacienteService {
                     aplicarDatos(paciente, request);
                     return pacienteRepository.save(paciente);
                 });
+    }
+
+    @Transactional
+    public Paciente obtenerOCrearParaUsuario(RegisterPacienteRequest request) {
+        Paciente paciente = buscarPorCelularOCorreo(request.celular(), request.correo())
+                .orElseGet(Paciente::new);
+        paciente.setNombre(request.nombre());
+        paciente.setApellidoPaterno(request.apellidoPaterno());
+        paciente.setApellidoMaterno(request.apellidoMaterno());
+        paciente.setCelular(request.celular());
+        paciente.setCorreo(request.correo());
+        paciente.setDocumentoIdentidad(request.documentoIdentidad());
+        paciente.setFechaNacimiento(request.fechaNacimiento());
+        paciente.setDireccion(request.direccion());
+        paciente.setFotoUrl(request.fotoUrl());
+        paciente.setActivo(true);
+        return pacienteRepository.save(paciente);
+    }
+
+    @Transactional(readOnly = true)
+    public java.util.Optional<Paciente> buscarPorCelularOCorreo(String celular, String correo) {
+        if (correo != null && !correo.isBlank()) {
+            java.util.Optional<Paciente> porCorreo = pacienteRepository
+                    .findFirstByCorreoIgnoreCaseAndActivoTrueOrderByIdDesc(correo);
+            if (porCorreo.isPresent()) {
+                return porCorreo;
+            }
+        }
+        return pacienteRepository.findFirstByCelularAndActivoTrueOrderByIdDesc(celular);
     }
 
     public PacienteResponse toResponse(Paciente paciente) {

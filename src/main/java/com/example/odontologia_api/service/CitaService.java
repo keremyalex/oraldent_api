@@ -43,9 +43,15 @@ public class CitaService {
 
     @Transactional(readOnly = true)
     public List<CitaResponse> listar(LocalDate fecha) {
-        LocalDate dia = fecha != null ? fecha : LocalDate.now();
-        LocalDateTime inicio = dia.atStartOfDay();
-        LocalDateTime fin = dia.plusDays(1).atStartOfDay();
+        if (fecha == null) {
+            return citaRepository.findAllByOrderByFechaHoraInicioAsc()
+                    .stream()
+                    .map(this::toResponse)
+                    .toList();
+        }
+
+        LocalDateTime inicio = fecha.atStartOfDay();
+        LocalDateTime fin = fecha.plusDays(1).atStartOfDay();
         return citaRepository.findByFechaHoraInicioBetweenOrderByFechaHoraInicioAsc(inicio, fin)
                 .stream()
                 .map(this::toResponse)

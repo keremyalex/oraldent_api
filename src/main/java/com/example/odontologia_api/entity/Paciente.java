@@ -5,6 +5,7 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.OneToOne;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
@@ -47,6 +48,9 @@ public class Paciente {
 
     @Column(nullable = false)
     private Boolean activo = true;
+
+    @OneToOne(mappedBy = "paciente")
+    private Usuario usuario;
 
     @Column(nullable = false, updatable = false)
     private LocalDateTime fechaCreacion;
@@ -147,6 +151,14 @@ public class Paciente {
 
     public void setActivo(Boolean activo) {
         this.activo = activo;
+    }
+
+    public Usuario getUsuario() {
+        return usuario;
+    }
+
+    public void setUsuario(Usuario usuario) {
+        this.usuario = usuario;
     }
 
     public LocalDateTime getFechaCreacion() {

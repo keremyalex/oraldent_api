@@ -10,4 +10,6 @@ public interface PacienteRepository extends JpaRepository<Paciente, Long> {
     List<Paciente> findByActivoTrueOrderByApellidoPaternoAscApellidoMaternoAscNombreAsc();
 
     Optional<Paciente> findFirstByCelularAndActivoTrueOrderByIdDesc(String celular);
+
+    Optional<Paciente> findFirstByCorreoIgnoreCaseAndActivoTrueOrderByIdDesc(String correo);
 }
