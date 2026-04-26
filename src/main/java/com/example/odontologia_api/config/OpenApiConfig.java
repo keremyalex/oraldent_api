@@ -12,7 +12,7 @@ import org.springframework.context.annotation.Configuration;
         info = @Info(
                 title = "API de Consultorio Odontologico",
                 version = "1.0.0",
-                description = "API REST para la gestion de pacientes, citas, horarios y perfil del doctor.",
+                description = "API REST para la gestion de pacientes, servicios, citas y horarios.",
                 contact = @Contact(
                         name = "Equipo Odontologia"
                 ),

@@ -6,6 +6,8 @@ import com.example.odontologia_api.dto.DisponibilidadResponse;
 import com.example.odontologia_api.entity.Cita;
 import com.example.odontologia_api.entity.HorarioAtencion;
 import com.example.odontologia_api.entity.Paciente;
+import com.example.odontologia_api.entity.Servicio;
+import com.example.odontologia_api.enums.DiaSemana;
 import com.example.odontologia_api.enums.EstadoCita;
 import com.example.odontologia_api.exception.RecursoNoEncontradoException;
 import com.example.odontologia_api.exception.ReglaNegocioException;
@@ -30,15 +32,18 @@ public class CitaService {
     private final CitaRepository citaRepository;
     private final PacienteService pacienteService;
     private final HorarioAtencionService horarioAtencionService;
+    private final ServicioService servicioService;
 
     public CitaService(
             CitaRepository citaRepository,
             PacienteService pacienteService,
-            HorarioAtencionService horarioAtencionService
+            HorarioAtencionService horarioAtencionService,
+            ServicioService servicioService
     ) {
         this.citaRepository = citaRepository;
         this.pacienteService = pacienteService;
         this.horarioAtencionService = horarioAtencionService;
+        this.servicioService = servicioService;
     }
 
     @Transactional(readOnly = true)
@@ -66,6 +71,7 @@ public class CitaService {
     @Transactional
     public CitaResponse crear(CitaRequest request) {
         Paciente paciente = resolverPaciente(request);
+        Servicio servicio = servicioService.buscarActivo(request.servicioId());
         HorarioAtencion horario = buscarHorarioCompatible(request.fechaHoraInicio());
         LocalDateTime fin = request.fechaHoraInicio().plusMinutes(horario.getDuracionCitaMinutos());
         validarRangoDentroDelHorario(request.fechaHoraInicio(), fin, horario);
@@ -73,6 +79,7 @@ public class CitaService {
 
         Cita cita = new Cita();
         cita.setPaciente(paciente);
+        cita.setServicio(servicio);
         cita.setFechaHoraInicio(request.fechaHoraInicio());
         cita.setFechaHoraFin(fin);
         cita.setMotivo(request.motivo());
@@ -112,7 +119,7 @@ public class CitaService {
 
     @Transactional(readOnly = true)
     public DisponibilidadResponse disponibilidad(LocalDate fecha) {
-        List<LocalTime> disponibles = horarioAtencionService.listarPorDia(fecha.getDayOfWeek())
+        List<LocalTime> disponibles = horarioAtencionService.listarPorDia(DiaSemana.fromDayOfWeek(fecha.getDayOfWeek()))
                 .stream()
                 .flatMap(horario -> generarBloquesDisponibles(fecha, horario).stream())
                 .sorted()
@@ -131,7 +138,7 @@ public class CitaService {
     }
 
     private HorarioAtencion buscarHorarioCompatible(LocalDateTime inicio) {
-        return horarioAtencionService.listarPorDia(inicio.getDayOfWeek())
+        return horarioAtencionService.listarPorDia(DiaSemana.fromDayOfWeek(inicio.getDayOfWeek()))
                 .stream()
                 .filter(horario -> !inicio.toLocalTime().isBefore(horario.getHoraInicio()))
                 .filter(horario -> inicio.toLocalTime().isBefore(horario.getHoraFin()))
@@ -189,6 +196,7 @@ public class CitaService {
         return new CitaResponse(
                 cita.getId(),
                 pacienteService.toResponse(cita.getPaciente()),
+                cita.getServicio() == null ? null : servicioService.toResponse(cita.getServicio()),
                 cita.getFechaHoraInicio(),
                 cita.getFechaHoraFin(),
                 cita.getMotivo(),

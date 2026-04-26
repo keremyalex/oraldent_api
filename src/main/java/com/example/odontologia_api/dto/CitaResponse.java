@@ -6,6 +6,7 @@ import java.time.LocalDateTime;
 public record CitaResponse(
         Long id,
         PacienteResponse paciente,
+        ServicioResponse servicio,
         LocalDateTime fechaHoraInicio,
         LocalDateTime fechaHoraFin,
         String motivo,

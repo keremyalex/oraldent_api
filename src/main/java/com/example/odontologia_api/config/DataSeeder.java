@@ -3,18 +3,19 @@ package com.example.odontologia_api.config;
 import com.example.odontologia_api.entity.Cita;
 import com.example.odontologia_api.entity.HorarioAtencion;
 import com.example.odontologia_api.entity.Paciente;
+import com.example.odontologia_api.entity.Servicio;
 import com.example.odontologia_api.entity.Usuario;
+import com.example.odontologia_api.enums.DiaSemana;
 import com.example.odontologia_api.enums.EstadoCita;
 import com.example.odontologia_api.enums.RolUsuario;
 import com.example.odontologia_api.repository.CitaRepository;
 import com.example.odontologia_api.repository.HorarioAtencionRepository;
 import com.example.odontologia_api.repository.PacienteRepository;
+import com.example.odontologia_api.repository.ServicioRepository;
 import com.example.odontologia_api.repository.UsuarioRepository;
-import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
-import java.util.List;
 import java.util.Optional;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
@@ -31,6 +32,7 @@ public class DataSeeder implements CommandLineRunner {
     private final UsuarioRepository usuarioRepository;
     private final PacienteRepository pacienteRepository;
     private final HorarioAtencionRepository horarioRepository;
+    private final ServicioRepository servicioRepository;
     private final CitaRepository citaRepository;
     private final PasswordEncoder passwordEncoder;
 
@@ -41,12 +43,14 @@ public class DataSeeder implements CommandLineRunner {
             UsuarioRepository usuarioRepository,
             PacienteRepository pacienteRepository,
             HorarioAtencionRepository horarioRepository,
+            ServicioRepository servicioRepository,
             CitaRepository citaRepository,
             PasswordEncoder passwordEncoder
     ) {
         this.usuarioRepository = usuarioRepository;
         this.pacienteRepository = pacienteRepository;
         this.horarioRepository = horarioRepository;
+        this.servicioRepository = servicioRepository;
         this.citaRepository = citaRepository;
         this.passwordEncoder = passwordEncoder;
     }
@@ -59,101 +63,177 @@ public class DataSeeder implements CommandLineRunner {
         }
 
         crearHorariosSiFaltan();
-        Paciente paciente1 = obtenerOCrearPaciente("María Fernanda", "Rojas", "Flores", "70010001", "maria@oraldent.demo");
-        Paciente paciente2 = obtenerOCrearPaciente("Luis Alberto", "Mamani", "Quispe", "70010002", "luis@oraldent.demo");
-        Paciente paciente3 = obtenerOCrearPaciente("Camila", "Pérez", "Vargas", "70010003", "camila@oraldent.demo");
+        Servicio implantologia = obtenerOCrearServicio("Implantologia Dental", "Tratamientos relacionados con implantes dentales.");
+        Servicio rayoX = obtenerOCrearServicio("Rayo X", "Toma y apoyo diagnostico radiografico.");
+        Servicio blanqueamiento = obtenerOCrearServicio("Blanqueamiento Dental Laser", "Tratamiento estetico para aclaramiento dental.");
+        Servicio ortodoncia = obtenerOCrearServicio("Ortodoncia", "Correccion de alineacion y mordida.");
+        Servicio protesis = obtenerOCrearServicio("Protesis Fija y Removible", "Rehabilitacion oral con protesis parciales o completas.");
+
+        Paciente paciente1 = obtenerOCrearPaciente("Maria Fernanda", "Rojas", "Flores", "70010001", "maria@oraldent.com", "1234567", LocalDate.of(1997, 3, 12), "Zona Central");
+        Paciente paciente2 = obtenerOCrearPaciente("Luis Alberto", "Mamani", "Quispe", "70010002", "luis@oraldent.com", "2345678", LocalDate.of(1992, 8, 21), "Av. Busch");
+        Paciente paciente3 = obtenerOCrearPaciente("Camila", "Perez", "Vargas", "70010003", "camila@oraldent.com", "3456789", LocalDate.of(2001, 1, 5), "Zona Norte");
 
         obtenerOCrearUsuario(
-                "Andrea",
-                "Suárez",
-                "Mendoza",
-                "admin@oraldent.demo",
+                "Valeria",
+                "Soria",
+                "Lopez",
+                "admin@oraldent.com",
                 "70000001",
                 "admin1234",
                 RolUsuario.ADMIN,
                 null
         );
-        obtenerOCrearUsuario(
-                "Valeria",
-                "Soria",
-                "López",
-                "doctor@oraldent.demo",
-                "70000002",
-                "doctor1234",
-                RolUsuario.ADMIN,
-                null
-        );
-        obtenerOCrearUsuario(
-                "Paola",
-                "Rivas",
-                "Torrez",
-                "recepcion@oraldent.demo",
-                "70000003",
-                "recepcion1234",
-                RolUsuario.RECEPCION,
-                null
-        );
-        obtenerOCrearUsuario(
-                paciente1.getNombre(),
-                paciente1.getApellidoPaterno(),
-                paciente1.getApellidoMaterno(),
-                "paciente@oraldent.demo",
-                "70000004",
-                "paciente1234",
-                RolUsuario.PACIENTE,
-                paciente1
-        );
 
-        crearCitaSiNoExiste(paciente1, LocalTime.of(9, 0), "Limpieza dental", EstadoCita.CONFIRMADA, "SEEDA001");
-        crearCitaSiNoExiste(paciente2, LocalTime.of(10, 0), "Evaluación general", EstadoCita.PENDIENTE, "SEEDA002");
-        crearCitaSiNoExiste(paciente3, LocalTime.of(11, 30), "Control de ortodoncia", EstadoCita.CONFIRMADA, "SEEDA003");
+        crearCitaSiNoExiste(
+                paciente1,
+                implantologia,
+                LocalDateTime.of(2026, 4, 27, 9, 0),
+                "Valoracion inicial para implante",
+                EstadoCita.CONFIRMADA,
+                "ORALA001",
+                "Primera valoracion de la semana."
+        );
+        crearCitaSiNoExiste(
+                paciente2,
+                rayoX,
+                LocalDateTime.of(2026, 4, 27, 15, 30),
+                "Radiografia panoramica de control",
+                EstadoCita.PENDIENTE,
+                "ORALA002",
+                "Paciente referido para apoyo diagnostico."
+        );
+        crearCitaSiNoExiste(
+                paciente3,
+                ortodoncia,
+                LocalDateTime.of(2026, 4, 28, 10, 0),
+                "Control de ortodoncia",
+                EstadoCita.CONFIRMADA,
+                "ORALA003",
+                "Ajuste mensual."
+        );
+        crearCitaSiNoExiste(
+                paciente1,
+                blanqueamiento,
+                LocalDateTime.of(2026, 4, 29, 16, 0),
+                "Evaluacion para blanqueamiento",
+                EstadoCita.PENDIENTE,
+                "ORALA004",
+                "Paciente solicita tratamiento estetico."
+        );
+        crearCitaSiNoExiste(
+                paciente2,
+                protesis,
+                LocalDateTime.of(2026, 5, 1, 11, 0),
+                "Revision de protesis",
+                EstadoCita.REPROGRAMADA,
+                "ORALA005",
+                "Cita reprogramada por disponibilidad del paciente."
+        );
+        crearCitaSiNoExiste(
+                paciente3,
+                rayoX,
+                LocalDateTime.of(2026, 5, 2, 9, 0),
+                "Rayo X de seguimiento",
+                EstadoCita.CONFIRMADA,
+                "ORALA006",
+                "Control sabatino."
+        );
         log.info("Seed de demo verificado correctamente.");
     }
 
     private void crearHorariosSiFaltan() {
-        crearHorarioSiNoExiste(DayOfWeek.MONDAY);
-        crearHorarioSiNoExiste(DayOfWeek.TUESDAY);
-        crearHorarioSiNoExiste(DayOfWeek.WEDNESDAY);
-        crearHorarioSiNoExiste(DayOfWeek.THURSDAY);
-        crearHorarioSiNoExiste(DayOfWeek.FRIDAY);
+        crearHorarioSiNoExiste(DiaSemana.LUNES, LocalTime.of(8, 30), LocalTime.of(12, 30), "Turno manana");
+        crearHorarioSiNoExiste(DiaSemana.LUNES, LocalTime.of(15, 0), LocalTime.of(22, 30), "Turno tarde");
+        crearHorarioSiNoExiste(DiaSemana.MARTES, LocalTime.of(8, 30), LocalTime.of(12, 30), "Turno manana");
+        crearHorarioSiNoExiste(DiaSemana.MARTES, LocalTime.of(15, 0), LocalTime.of(22, 30), "Turno tarde");
+        crearHorarioSiNoExiste(DiaSemana.MIERCOLES, LocalTime.of(8, 30), LocalTime.of(12, 30), "Turno manana");
+        crearHorarioSiNoExiste(DiaSemana.MIERCOLES, LocalTime.of(15, 0), LocalTime.of(22, 30), "Turno tarde");
+        crearHorarioSiNoExiste(DiaSemana.JUEVES, LocalTime.of(8, 30), LocalTime.of(12, 30), "Turno manana");
+        crearHorarioSiNoExiste(DiaSemana.JUEVES, LocalTime.of(15, 0), LocalTime.of(22, 30), "Turno tarde");
+        crearHorarioSiNoExiste(DiaSemana.VIERNES, LocalTime.of(8, 30), LocalTime.of(12, 30), "Turno manana");
+        crearHorarioSiNoExiste(DiaSemana.VIERNES, LocalTime.of(15, 0), LocalTime.of(22, 30), "Turno tarde");
+        crearHorarioSiNoExiste(DiaSemana.SABADO, LocalTime.of(9, 0), LocalTime.of(22, 30), "Turno continuo");
     }
 
-    private void crearHorarioSiNoExiste(DayOfWeek dayOfWeek) {
-        if (!horarioRepository.findByDiaSemanaAndActivoTrueOrderByHoraInicioAsc(dayOfWeek).isEmpty()) {
+    private void crearHorarioSiNoExiste(DiaSemana dayOfWeek, LocalTime horaInicio, LocalTime horaFin, String observacion) {
+        boolean existe = horarioRepository.findActivosPorDiaSemanaValoresOrderByHoraInicioAsc(
+                        java.util.List.of(dayOfWeek.name(), dayOfWeek.legacyValue())
+                ).stream()
+                .anyMatch(horario -> horario.getHoraInicio().equals(horaInicio) && horario.getHoraFin().equals(horaFin));
+        if (existe) {
             return;
         }
 
         HorarioAtencion horario = new HorarioAtencion();
         horario.setDiaSemana(dayOfWeek);
-        horario.setHoraInicio(LocalTime.of(8, 30));
-        horario.setHoraFin(LocalTime.of(18, 30));
+        horario.setHoraInicio(horaInicio);
+        horario.setHoraFin(horaFin);
         horario.setDuracionCitaMinutos(30);
-        horario.setObservacion("Turnos habilitados");
+        horario.setObservacion(observacion);
         horario.setActivo(true);
         horarioRepository.save(horario);
     }
 
-    private Paciente obtenerOCrearPaciente(String nombre, String paterno, String materno, String celular, String correo) {
+    private Servicio obtenerOCrearServicio(String nombre, String descripcion) {
+        return servicioRepository.findByNombreIgnoreCase(nombre)
+                .orElseGet(() -> {
+                    Servicio servicio = new Servicio();
+                    servicio.setNombre(nombre);
+                    servicio.setDescripcion(descripcion);
+                    servicio.setActivo(true);
+                    return servicioRepository.save(servicio);
+                });
+    }
+
+    private Paciente obtenerOCrearPaciente(
+            String nombre,
+            String paterno,
+            String materno,
+            String celular,
+            String correo,
+            String documentoIdentidad,
+            LocalDate fechaNacimiento,
+            String direccion
+    ) {
         Optional<Paciente> porCelular = pacienteRepository.findFirstByCelularAndActivoTrueOrderByIdDesc(celular);
         if (porCelular.isPresent()) {
-            return porCelular.get();
+            Paciente paciente = porCelular.get();
+            actualizarPaciente(paciente, nombre, paterno, materno, celular, correo, documentoIdentidad, fechaNacimiento, direccion);
+            return pacienteRepository.save(paciente);
         }
 
         Optional<Paciente> porCorreo = pacienteRepository.findFirstByCorreoIgnoreCaseAndActivoTrueOrderByIdDesc(correo);
         if (porCorreo.isPresent()) {
-            return porCorreo.get();
+            Paciente paciente = porCorreo.get();
+            actualizarPaciente(paciente, nombre, paterno, materno, celular, correo, documentoIdentidad, fechaNacimiento, direccion);
+            return pacienteRepository.save(paciente);
         }
 
         Paciente paciente = new Paciente();
+        actualizarPaciente(paciente, nombre, paterno, materno, celular, correo, documentoIdentidad, fechaNacimiento, direccion);
+        return pacienteRepository.save(paciente);
+    }
+
+    private void actualizarPaciente(
+            Paciente paciente,
+            String nombre,
+            String paterno,
+            String materno,
+            String celular,
+            String correo,
+            String documentoIdentidad,
+            LocalDate fechaNacimiento,
+            String direccion
+    ) {
         paciente.setNombre(nombre);
         paciente.setApellidoPaterno(paterno);
         paciente.setApellidoMaterno(materno);
         paciente.setCelular(celular);
         paciente.setCorreo(correo);
-        paciente.setDocumentoIdentidad("CI-" + celular.substring(celular.length() - 4));
-        paciente.setDireccion("Zona central");
+        paciente.setDocumentoIdentidad(documentoIdentidad);
+        paciente.setFechaNacimiento(fechaNacimiento);
+        paciente.setDireccion(direccion);
         paciente.setActivo(true);
-        return pacienteRepository.save(paciente);
     }
 
     private Usuario obtenerOCrearUsuario(
@@ -192,26 +272,27 @@ public class DataSeeder implements CommandLineRunner {
 
     private void crearCitaSiNoExiste(
             Paciente paciente,
-            LocalTime horaInicio,
+            Servicio servicio,
+            LocalDateTime fechaHoraInicio,
             String motivo,
             EstadoCita estado,
-            String codigo
+            String codigo,
+            String notas
     ) {
         if (citaRepository.existsByCodigoGestion(codigo)) {
             return;
         }
 
-        LocalDate fechaBase = LocalDate.now().plusDays(1);
-        LocalDateTime fechaHoraInicio = LocalDateTime.of(fechaBase, horaInicio);
-        LocalDateTime fechaHoraFin = LocalDateTime.of(fechaBase, horaInicio.plusMinutes(30));
+        LocalDateTime fechaHoraFin = fechaHoraInicio.plusMinutes(30);
         Cita cita = new Cita();
         cita.setPaciente(paciente);
+        cita.setServicio(servicio);
         cita.setFechaHoraInicio(fechaHoraInicio);
         cita.setFechaHoraFin(fechaHoraFin);
         cita.setMotivo(motivo);
         cita.setEstado(estado);
         cita.setCodigoGestion(codigo);
-        cita.setNotas("Registro inicial de demostración.");
+        cita.setNotas(notas);
         citaRepository.save(cita);
     }
 }

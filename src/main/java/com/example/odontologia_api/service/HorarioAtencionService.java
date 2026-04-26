@@ -3,10 +3,10 @@ package com.example.odontologia_api.service;
 import com.example.odontologia_api.dto.HorarioAtencionRequest;
 import com.example.odontologia_api.dto.HorarioAtencionResponse;
 import com.example.odontologia_api.entity.HorarioAtencion;
+import com.example.odontologia_api.enums.DiaSemana;
 import com.example.odontologia_api.exception.RecursoNoEncontradoException;
 import com.example.odontologia_api.exception.ReglaNegocioException;
 import com.example.odontologia_api.repository.HorarioAtencionRepository;
-import java.time.DayOfWeek;
 import java.util.List;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -29,8 +29,10 @@ public class HorarioAtencionService {
     }
 
     @Transactional(readOnly = true)
-    public List<HorarioAtencion> listarPorDia(DayOfWeek diaSemana) {
-        return horarioRepository.findByDiaSemanaAndActivoTrueOrderByHoraInicioAsc(diaSemana);
+    public List<HorarioAtencion> listarPorDia(DiaSemana diaSemana) {
+        return horarioRepository.findActivosPorDiaSemanaValoresOrderByHoraInicioAsc(
+                List.of(diaSemana.name(), diaSemana.legacyValue())
+        );
     }
 
     @Transactional

@@ -10,6 +10,7 @@ import java.time.LocalDateTime;
 public record CitaRequest(
         Long pacienteId,
         @Valid PacienteRequest paciente,
+        @NotNull Long servicioId,
         @NotNull @Future LocalDateTime fechaHoraInicio,
         @NotBlank @Size(max = 300) String motivo,
         @Size(max = 500) String notas

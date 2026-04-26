@@ -55,11 +55,15 @@ public class SecurityConfig {
                                 "/error"
                         ).permitAll()
                         .requestMatchers("/api/auth/login", "/api/auth/register/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/servicios/**").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/citas").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/citas/disponibilidad").permitAll()
                         .requestMatchers(HttpMethod.PUT, "/api/citas/*/cancelar").permitAll()
                         .requestMatchers(HttpMethod.PUT, "/api/citas/*/reprogramar").permitAll()
                         .requestMatchers("/api/doctor/**", "/api/horarios/**").hasAnyRole("ADMIN", "DOCTOR", "RECEPCION")
+                        .requestMatchers(HttpMethod.POST, "/api/servicios/**").hasAnyRole("ADMIN", "DOCTOR", "RECEPCION")
+                        .requestMatchers(HttpMethod.PUT, "/api/servicios/**").hasAnyRole("ADMIN", "DOCTOR", "RECEPCION")
+                        .requestMatchers(HttpMethod.DELETE, "/api/servicios/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.GET, "/api/pacientes/**").hasAnyRole("ADMIN", "DOCTOR", "RECEPCION")
                         .requestMatchers(HttpMethod.POST, "/api/pacientes/**").hasAnyRole("ADMIN", "DOCTOR", "RECEPCION")
                         .requestMatchers(HttpMethod.PUT, "/api/pacientes/**").hasAnyRole("ADMIN", "DOCTOR", "RECEPCION")
@@ -95,7 +99,10 @@ public class SecurityConfig {
         CorsConfiguration configuration = new CorsConfiguration();
         configuration.setAllowedOrigins(List.of(
                 "http://localhost:4200",
-                "http://127.0.0.1:4200"
+                "http://127.0.0.1:4200",
+                "http://localhost:5173",
+                "http://127.0.0.1:5173",
+                "https://oraldent.keremy.com"
         ));
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("*"));

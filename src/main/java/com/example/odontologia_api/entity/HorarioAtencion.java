@@ -1,30 +1,30 @@
 package com.example.odontologia_api.entity;
 
+import com.example.odontologia_api.enums.DiaSemana;
+import com.example.odontologia_api.persistence.DiaSemanaConverter;
 import jakarta.persistence.Column;
+import jakarta.persistence.Convert;
 import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
-import java.time.DayOfWeek;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 
 @Entity
-@Table(name = "horarios_atencion")
+@Table(name = "horarios")
 public class HorarioAtencion {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Enumerated(EnumType.STRING)
+    @Convert(converter = DiaSemanaConverter.class)
     @Column(nullable = false, length = 20)
-    private DayOfWeek diaSemana;
+    private DiaSemana diaSemana;
 
     @Column(nullable = false)
     private LocalTime horaInicio;
@@ -62,11 +62,11 @@ public class HorarioAtencion {
         return id;
     }
 
-    public DayOfWeek getDiaSemana() {
+    public DiaSemana getDiaSemana() {
         return diaSemana;
     }
 
-    public void setDiaSemana(DayOfWeek diaSemana) {
+    public void setDiaSemana(DiaSemana diaSemana) {
         this.diaSemana = diaSemana;
     }
 
