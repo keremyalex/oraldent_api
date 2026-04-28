@@ -10,7 +10,6 @@ public record UsuarioAuthResponse(
         String correo,
         String celular,
         RolUsuario rol,
-        String fotoPerfilUrl,
-        Long pacienteId
+        String fotoPerfilUrl
 ) {
 }

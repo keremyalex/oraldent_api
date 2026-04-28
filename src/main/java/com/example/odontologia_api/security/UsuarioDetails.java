@@ -10,7 +10,6 @@ import org.springframework.security.core.userdetails.UserDetails;
 public class UsuarioDetails implements UserDetails {
 
     private final Long id;
-    private final Long pacienteId;
     private final String username;
     private final String password;
     private final boolean activo;
@@ -18,7 +17,6 @@ public class UsuarioDetails implements UserDetails {
 
     public UsuarioDetails(Usuario usuario) {
         this.id = usuario.getId();
-        this.pacienteId = usuario.getPaciente() != null ? usuario.getPaciente().getId() : null;
         this.username = usuario.getCorreo() != null ? usuario.getCorreo() : usuario.getCelular();
         this.password = usuario.getPassword();
         this.activo = Boolean.TRUE.equals(usuario.getActivo());
@@ -27,10 +25,6 @@ public class UsuarioDetails implements UserDetails {
 
     public Long getId() {
         return id;
-    }
-
-    public Long getPacienteId() {
-        return pacienteId;
     }
 
     @Override

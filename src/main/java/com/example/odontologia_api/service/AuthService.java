@@ -88,7 +88,6 @@ public class AuthService {
         usuario.setRol(RolUsuario.PACIENTE);
         usuario.setActivo(true);
         usuario.setVerificado(true);
-        usuario.setPaciente(paciente);
 
         Usuario saved = usuarioRepository.save(usuario);
         return construirAuthResponse(saved);
@@ -156,9 +155,6 @@ public class AuthService {
         Map<String, Object> claims = new HashMap<>();
         claims.put("userId", usuario.getId());
         claims.put("rol", usuario.getRol().name());
-        if (usuario.getPaciente() != null) {
-            claims.put("pacienteId", usuario.getPaciente().getId());
-        }
         String token = jwtService.generateToken(userDetails, claims);
         return new AuthResponse(token, "Bearer", toUsuarioResponse(usuario));
     }
@@ -172,8 +168,7 @@ public class AuthService {
                 usuario.getCorreo(),
                 usuario.getCelular(),
                 usuario.getRol(),
-                usuario.getFotoPerfilUrl(),
-                usuario.getPaciente() != null ? usuario.getPaciente().getId() : null
+                usuario.getFotoPerfilUrl()
         );
     }
 

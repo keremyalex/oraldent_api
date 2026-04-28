@@ -5,6 +5,7 @@ import com.example.odontologia_api.dto.CitaResponse;
 import com.example.odontologia_api.dto.DisponibilidadResponse;
 import com.example.odontologia_api.dto.GestionCitaRequest;
 import com.example.odontologia_api.dto.ReprogramarCitaRequest;
+import com.example.odontologia_api.security.UsuarioDetails;
 import com.example.odontologia_api.service.CitaService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -13,6 +14,7 @@ import java.time.LocalDate;
 import java.util.List;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -53,8 +55,11 @@ public class CitaController {
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     @Operation(summary = "Registrar una cita")
-    public CitaResponse crear(@Valid @RequestBody CitaRequest request) {
-        return citaService.crear(request);
+    public CitaResponse crear(
+            @Valid @RequestBody CitaRequest request,
+            @AuthenticationPrincipal UsuarioDetails usuarioDetails
+    ) {
+        return citaService.crear(request, usuarioDetails != null ? usuarioDetails.getId() : null);
     }
 
     @PutMapping("/{id}/cancelar")

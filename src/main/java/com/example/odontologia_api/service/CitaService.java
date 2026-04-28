@@ -7,11 +7,13 @@ import com.example.odontologia_api.entity.Cita;
 import com.example.odontologia_api.entity.HorarioAtencion;
 import com.example.odontologia_api.entity.Paciente;
 import com.example.odontologia_api.entity.Servicio;
+import com.example.odontologia_api.entity.Usuario;
 import com.example.odontologia_api.enums.DiaSemana;
 import com.example.odontologia_api.enums.EstadoCita;
 import com.example.odontologia_api.exception.RecursoNoEncontradoException;
 import com.example.odontologia_api.exception.ReglaNegocioException;
 import com.example.odontologia_api.repository.CitaRepository;
+import com.example.odontologia_api.repository.UsuarioRepository;
 import java.security.SecureRandom;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -30,17 +32,20 @@ public class CitaService {
     private static final SecureRandom RANDOM = new SecureRandom();
 
     private final CitaRepository citaRepository;
+    private final UsuarioRepository usuarioRepository;
     private final PacienteService pacienteService;
     private final HorarioAtencionService horarioAtencionService;
     private final ServicioService servicioService;
 
     public CitaService(
             CitaRepository citaRepository,
+            UsuarioRepository usuarioRepository,
             PacienteService pacienteService,
             HorarioAtencionService horarioAtencionService,
             ServicioService servicioService
     ) {
         this.citaRepository = citaRepository;
+        this.usuarioRepository = usuarioRepository;
         this.pacienteService = pacienteService;
         this.horarioAtencionService = horarioAtencionService;
         this.servicioService = servicioService;
@@ -69,9 +74,10 @@ public class CitaService {
     }
 
     @Transactional
-    public CitaResponse crear(CitaRequest request) {
+    public CitaResponse crear(CitaRequest request, Long usuarioId) {
         Paciente paciente = resolverPaciente(request);
         Servicio servicio = servicioService.buscarActivo(request.servicioId());
+        Usuario usuarioRegistrador = resolverUsuarioRegistrador(usuarioId);
         HorarioAtencion horario = buscarHorarioCompatible(request.fechaHoraInicio());
         LocalDateTime fin = request.fechaHoraInicio().plusMinutes(horario.getDuracionCitaMinutos());
         validarRangoDentroDelHorario(request.fechaHoraInicio(), fin, horario);
@@ -79,6 +85,7 @@ public class CitaService {
 
         Cita cita = new Cita();
         cita.setPaciente(paciente);
+        cita.setUsuario(usuarioRegistrador);
         cita.setServicio(servicio);
         cita.setFechaHoraInicio(request.fechaHoraInicio());
         cita.setFechaHoraFin(fin);
@@ -139,6 +146,14 @@ public class CitaService {
             throw new ReglaNegocioException("Debe enviar pacienteId o los datos del paciente.");
         }
         return pacienteService.obtenerOCrearParaCita(request.paciente());
+    }
+
+    private Usuario resolverUsuarioRegistrador(Long usuarioId) {
+        if (usuarioId == null) {
+            return null;
+        }
+        return usuarioRepository.findById(usuarioId)
+                .orElseThrow(() -> new RecursoNoEncontradoException("Usuario registrador no encontrado."));
     }
 
     private HorarioAtencion buscarHorarioCompatible(LocalDateTime inicio) {
@@ -202,6 +217,7 @@ public class CitaService {
         return new CitaResponse(
                 cita.getId(),
                 pacienteService.toResponse(cita.getPaciente()),
+                cita.getUsuario() != null ? cita.getUsuario().getId() : null,
                 cita.getServicio() == null ? null : servicioService.toResponse(cita.getServicio()),
                 cita.getFechaHoraInicio(),
                 cita.getFechaHoraFin(),

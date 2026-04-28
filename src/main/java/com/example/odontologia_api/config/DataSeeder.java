@@ -80,12 +80,13 @@ public class DataSeeder implements CommandLineRunner {
                 "admin@oraldent.com",
                 "70000001",
                 "admin1234",
-                RolUsuario.ADMIN,
-                null
+                RolUsuario.ADMIN
         );
+        Usuario admin = usuarioRepository.findByCorreoIgnoreCase("admin@oraldent.com").orElseThrow();
 
         crearCitaSiNoExiste(
                 paciente1,
+                admin,
                 implantologia,
                 LocalDateTime.of(2026, 4, 27, 9, 0),
                 "Valoracion inicial para implante",
@@ -95,6 +96,7 @@ public class DataSeeder implements CommandLineRunner {
         );
         crearCitaSiNoExiste(
                 paciente2,
+                admin,
                 rayoX,
                 LocalDateTime.of(2026, 4, 27, 15, 30),
                 "Radiografia panoramica de control",
@@ -104,6 +106,7 @@ public class DataSeeder implements CommandLineRunner {
         );
         crearCitaSiNoExiste(
                 paciente3,
+                null,
                 ortodoncia,
                 LocalDateTime.of(2026, 4, 28, 10, 0),
                 "Control de ortodoncia",
@@ -113,6 +116,7 @@ public class DataSeeder implements CommandLineRunner {
         );
         crearCitaSiNoExiste(
                 paciente1,
+                null,
                 blanqueamiento,
                 LocalDateTime.of(2026, 4, 29, 16, 0),
                 "Evaluacion para blanqueamiento",
@@ -122,6 +126,7 @@ public class DataSeeder implements CommandLineRunner {
         );
         crearCitaSiNoExiste(
                 paciente2,
+                admin,
                 protesis,
                 LocalDateTime.of(2026, 5, 1, 11, 0),
                 "Revision de protesis",
@@ -131,6 +136,7 @@ public class DataSeeder implements CommandLineRunner {
         );
         crearCitaSiNoExiste(
                 paciente3,
+                admin,
                 rayoX,
                 LocalDateTime.of(2026, 5, 2, 9, 0),
                 "Rayo X de seguimiento",
@@ -243,8 +249,7 @@ public class DataSeeder implements CommandLineRunner {
             String correo,
             String celular,
             String password,
-            RolUsuario rol,
-            Paciente paciente
+            RolUsuario rol
     ) {
         Optional<Usuario> usuarioExistente = usuarioRepository.findByCorreoIgnoreCase(correo);
         if (usuarioExistente.isPresent()) {
@@ -266,12 +271,12 @@ public class DataSeeder implements CommandLineRunner {
         usuario.setRol(rol);
         usuario.setActivo(true);
         usuario.setVerificado(true);
-        usuario.setPaciente(paciente);
         return usuarioRepository.save(usuario);
     }
 
     private void crearCitaSiNoExiste(
             Paciente paciente,
+            Usuario usuarioRegistrador,
             Servicio servicio,
             LocalDateTime fechaHoraInicio,
             String motivo,
@@ -286,6 +291,7 @@ public class DataSeeder implements CommandLineRunner {
         LocalDateTime fechaHoraFin = fechaHoraInicio.plusMinutes(30);
         Cita cita = new Cita();
         cita.setPaciente(paciente);
+        cita.setUsuario(usuarioRegistrador);
         cita.setServicio(servicio);
         cita.setFechaHoraInicio(fechaHoraInicio);
         cita.setFechaHoraFin(fechaHoraFin);

@@ -55,27 +55,6 @@ create table horarios (
 
 comment on table horarios is 'Cada fila representa un bloque horario. Esto permite varios turnos por el mismo día.';
 
-create table citas (
-    id bigserial primary key,
-    paciente_id bigint not null,
-    servicio_id bigint,
-    fecha_hora_inicio timestamp without time zone not null,
-    fecha_hora_fin timestamp without time zone not null,
-    motivo varchar(300) not null,
-    estado varchar(20) not null default 'PENDIENTE',
-    codigo_gestion varchar(60) not null,
-    notas varchar(500),
-    fecha_creacion timestamp without time zone not null default now(),
-    fecha_actualizacion timestamp without time zone not null default now(),
-    constraint fk_citas_paciente foreign key (paciente_id) references pacientes (id),
-    constraint fk_citas_servicio foreign key (servicio_id) references servicios (id),
-    constraint uk_citas_codigo_gestion unique (codigo_gestion),
-    constraint ck_citas_estado check (
-        estado in ('PENDIENTE', 'CONFIRMADA', 'CANCELADA', 'REPROGRAMADA', 'ATENDIDA', 'NO_ASISTIO')
-    ),
-    constraint ck_citas_rango check (fecha_hora_inicio < fecha_hora_fin)
-);
-
 create table usuarios (
     id bigserial primary key,
     nombre varchar(80) not null,
@@ -89,10 +68,8 @@ create table usuarios (
     verificado boolean not null default true,
     foto_perfil_url varchar(500),
     foto_perfil_public_id varchar(255),
-    paciente_id bigint unique,
     fecha_creacion timestamp without time zone not null default now(),
     fecha_actualizacion timestamp without time zone not null default now(),
-    constraint fk_usuarios_paciente foreign key (paciente_id) references pacientes (id),
     constraint uk_usuarios_correo unique (correo),
     constraint uk_usuarios_celular unique (celular),
     constraint ck_usuarios_rol check (
@@ -100,9 +77,33 @@ create table usuarios (
     )
 );
 
+create table citas (
+    id bigserial primary key,
+    paciente_id bigint not null,
+    usuario_id bigint,
+    servicio_id bigint,
+    fecha_hora_inicio timestamp without time zone not null,
+    fecha_hora_fin timestamp without time zone not null,
+    motivo varchar(300) not null,
+    estado varchar(20) not null default 'PENDIENTE',
+    codigo_gestion varchar(60) not null,
+    notas varchar(500),
+    fecha_creacion timestamp without time zone not null default now(),
+    fecha_actualizacion timestamp without time zone not null default now(),
+    constraint fk_citas_paciente foreign key (paciente_id) references pacientes (id),
+    constraint fk_citas_usuario foreign key (usuario_id) references usuarios (id),
+    constraint fk_citas_servicio foreign key (servicio_id) references servicios (id),
+    constraint uk_citas_codigo_gestion unique (codigo_gestion),
+    constraint ck_citas_estado check (
+        estado in ('PENDIENTE', 'CONFIRMADA', 'CANCELADA', 'REPROGRAMADA', 'ATENDIDA', 'NO_ASISTIO')
+    ),
+    constraint ck_citas_rango check (fecha_hora_inicio < fecha_hora_fin)
+);
+
 create index idx_pacientes_celular on pacientes (celular);
 create index idx_pacientes_correo on pacientes (correo);
 create index idx_citas_paciente_id on citas (paciente_id);
+create index idx_citas_usuario_id on citas (usuario_id);
 create index idx_citas_servicio_id on citas (servicio_id);
 create index idx_citas_fecha_hora_inicio on citas (fecha_hora_inicio);
 create index idx_horarios_dia_semana on horarios (dia_semana);
@@ -147,8 +148,7 @@ insert into usuarios (
     activo,
     verificado,
     foto_perfil_url,
-    foto_perfil_public_id,
-    paciente_id
+    foto_perfil_public_id
 )
 values (
     'Valeria',
@@ -160,7 +160,6 @@ values (
     'ADMIN',
     true,
     true,
-    null,
     null,
     null
 );
@@ -185,6 +184,7 @@ values
 
 insert into citas (
     paciente_id,
+    usuario_id,
     servicio_id,
     fecha_hora_inicio,
     fecha_hora_fin,
@@ -196,6 +196,7 @@ insert into citas (
 values
     (
         (select id from pacientes where celular = '70010001' limit 1),
+        (select id from usuarios where correo = 'admin@oraldent.com' limit 1),
         (select id from servicios where nombre = 'Implantologia Dental' limit 1),
         '2026-04-27 09:00:00',
         '2026-04-27 09:30:00',
@@ -206,6 +207,7 @@ values
     ),
     (
         (select id from pacientes where celular = '70010002' limit 1),
+        (select id from usuarios where correo = 'admin@oraldent.com' limit 1),
         (select id from servicios where nombre = 'Rayo X' limit 1),
         '2026-04-27 15:30:00',
         '2026-04-27 16:00:00',
@@ -216,6 +218,7 @@ values
     ),
     (
         (select id from pacientes where celular = '70010003' limit 1),
+        null,
         (select id from servicios where nombre = 'Ortodoncia' limit 1),
         '2026-04-28 10:00:00',
         '2026-04-28 10:30:00',
@@ -226,6 +229,7 @@ values
     ),
     (
         (select id from pacientes where celular = '70010001' limit 1),
+        null,
         (select id from servicios where nombre = 'Blanqueamiento Dental Laser' limit 1),
         '2026-04-29 16:00:00',
         '2026-04-29 16:30:00',
@@ -236,6 +240,7 @@ values
     ),
     (
         (select id from pacientes where celular = '70010002' limit 1),
+        (select id from usuarios where correo = 'admin@oraldent.com' limit 1),
         (select id from servicios where nombre = 'Protesis Fija y Removible' limit 1),
         '2026-05-01 11:00:00',
         '2026-05-01 11:30:00',
@@ -246,6 +251,7 @@ values
     ),
     (
         (select id from pacientes where celular = '70010003' limit 1),
+        (select id from usuarios where correo = 'admin@oraldent.com' limit 1),
         (select id from servicios where nombre = 'Rayo X' limit 1),
         '2026-05-02 09:00:00',
         '2026-05-02 09:30:00',
