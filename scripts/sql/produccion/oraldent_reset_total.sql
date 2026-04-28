@@ -1,9 +1,15 @@
 begin;
 
--- Script maestro para PostgreSQL.
--- Crea la estructura base de Oraldent y carga catálogos/horarios iniciales.
+-- Script destructivo para desarrollo/demo.
+-- Elimina tablas existentes, las recrea y vuelve a cargar los datos base.
 
-create table if not exists pacientes (
+drop table if exists citas cascade;
+drop table if exists usuarios cascade;
+drop table if exists horarios cascade;
+drop table if exists servicios cascade;
+drop table if exists pacientes cascade;
+
+create table pacientes (
     id bigserial primary key,
     nombre varchar(80) not null,
     apellido_paterno varchar(80) not null,
@@ -20,7 +26,7 @@ create table if not exists pacientes (
     fecha_actualizacion timestamp without time zone not null default now()
 );
 
-create table if not exists servicios (
+create table servicios (
     id bigserial primary key,
     nombre varchar(150) not null,
     descripcion varchar(500),
@@ -30,7 +36,7 @@ create table if not exists servicios (
     constraint uk_servicios_nombre unique (nombre)
 );
 
-create table if not exists horarios (
+create table horarios (
     id bigserial primary key,
     dia_semana varchar(20) not null,
     hora_inicio time not null,
@@ -49,7 +55,7 @@ create table if not exists horarios (
 
 comment on table horarios is 'Cada fila representa un bloque horario. Esto permite varios turnos por el mismo día.';
 
-create table if not exists citas (
+create table citas (
     id bigserial primary key,
     paciente_id bigint not null,
     servicio_id bigint,
@@ -70,7 +76,7 @@ create table if not exists citas (
     constraint ck_citas_rango check (fecha_hora_inicio < fecha_hora_fin)
 );
 
-create table if not exists usuarios (
+create table usuarios (
     id bigserial primary key,
     nombre varchar(80) not null,
     apellido_paterno varchar(80) not null,
@@ -94,12 +100,12 @@ create table if not exists usuarios (
     )
 );
 
-create index if not exists idx_pacientes_celular on pacientes (celular);
-create index if not exists idx_pacientes_correo on pacientes (correo);
-create index if not exists idx_citas_paciente_id on citas (paciente_id);
-create index if not exists idx_citas_servicio_id on citas (servicio_id);
-create index if not exists idx_citas_fecha_hora_inicio on citas (fecha_hora_inicio);
-create index if not exists idx_horarios_dia_semana on horarios (dia_semana);
+create index idx_pacientes_celular on pacientes (celular);
+create index idx_pacientes_correo on pacientes (correo);
+create index idx_citas_paciente_id on citas (paciente_id);
+create index idx_citas_servicio_id on citas (servicio_id);
+create index idx_citas_fecha_hora_inicio on citas (fecha_hora_inicio);
+create index idx_horarios_dia_semana on horarios (dia_semana);
 
 insert into servicios (nombre, descripcion, activo)
 values
@@ -107,14 +113,7 @@ values
     ('Rayo X', 'Toma y apoyo diagnostico radiografico.', true),
     ('Blanqueamiento Dental Laser', 'Tratamiento estetico para aclaramiento dental.', true),
     ('Ortodoncia', 'Correccion de alineacion y mordida.', true),
-    ('Protesis Fija y Removible', 'Rehabilitacion oral con protesis parciales o completas.', true)
-on conflict (nombre) do update
-set descripcion = excluded.descripcion,
-    activo = true,
-    fecha_actualizacion = now();
-
-delete from horarios
-where dia_semana in ('LUNES', 'MARTES', 'MIERCOLES', 'JUEVES', 'VIERNES', 'SABADO', 'DOMINGO');
+    ('Protesis Fija y Removible', 'Rehabilitacion oral con protesis parciales o completas.', true);
 
 insert into horarios (
     dia_semana,
@@ -137,9 +136,6 @@ values
     ('VIERNES', '15:00:00', '22:30:00', 30, 'Turno tarde', true),
     ('SABADO', '09:00:00', '22:30:00', 30, 'Turno continuo', true);
 
--- Datos iniciales
--- Usuario administrador inicial
--- password plano: admin1234
 insert into usuarios (
     nombre,
     apellido_paterno,
@@ -167,33 +163,7 @@ values (
     null,
     null,
     null
-)
-on conflict (correo) do update
-set nombre = excluded.nombre,
-    apellido_paterno = excluded.apellido_paterno,
-    apellido_materno = excluded.apellido_materno,
-    celular = excluded.celular,
-    password = excluded.password,
-    rol = excluded.rol,
-    activo = true,
-    verificado = true,
-    foto_perfil_url = excluded.foto_perfil_url,
-    foto_perfil_public_id = excluded.foto_perfil_public_id,
-    paciente_id = null,
-    fecha_actualizacion = now();
-
-delete from citas
-where codigo_gestion in (
-    'ORALA001',
-    'ORALA002',
-    'ORALA003',
-    'ORALA004',
-    'ORALA005',
-    'ORALA006'
 );
-
-delete from pacientes
-where celular in ('70010001', '70010002', '70010003');
 
 insert into pacientes (
     nombre,

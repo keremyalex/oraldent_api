@@ -162,11 +162,13 @@ public class CitaService {
     private List<LocalTime> generarBloquesDisponibles(LocalDate fecha, HorarioAtencion horario) {
         LocalDateTime cursor = LocalDateTime.of(fecha, horario.getHoraInicio());
         LocalDateTime limite = LocalDateTime.of(fecha, horario.getHoraFin());
+        LocalDateTime ahora = LocalDateTime.now();
         List<LocalTime> bloques = new java.util.ArrayList<>();
 
         while (!cursor.plusMinutes(horario.getDuracionCitaMinutos()).isAfter(limite)) {
             LocalDateTime finBloque = cursor.plusMinutes(horario.getDuracionCitaMinutos());
-            if (!citaRepository.existsSolapamiento(cursor, finBloque, ESTADOS_LIBERAN_HORARIO, null)) {
+            boolean bloqueYaPaso = fecha.equals(ahora.toLocalDate()) && !cursor.isAfter(ahora);
+            if (!bloqueYaPaso && !citaRepository.existsSolapamiento(cursor, finBloque, ESTADOS_LIBERAN_HORARIO, null)) {
                 bloques.add(cursor.toLocalTime());
             }
             cursor = finBloque;

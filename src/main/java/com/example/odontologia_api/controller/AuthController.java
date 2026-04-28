@@ -11,6 +11,7 @@ import com.example.odontologia_api.service.AuthService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import org.springframework.http.MediaType;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.CrossOrigin;
@@ -18,9 +19,11 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
 @CrossOrigin
 @RestController
@@ -67,5 +70,14 @@ public class AuthController {
             @Valid @RequestBody ActualizarFotoPerfilRequest request
     ) {
         return authService.actualizarFotoPerfil(usuarioDetails.getId(), request);
+    }
+
+    @PutMapping(value = "/me/foto-perfil", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @Operation(summary = "Subir la foto de perfil del usuario autenticado a Cloudinary")
+    public UsuarioAuthResponse actualizarFotoPerfilArchivo(
+            @AuthenticationPrincipal UsuarioDetails usuarioDetails,
+            @RequestPart("archivo") MultipartFile archivo
+    ) {
+        return authService.actualizarFotoPerfil(usuarioDetails.getId(), archivo);
     }
 }

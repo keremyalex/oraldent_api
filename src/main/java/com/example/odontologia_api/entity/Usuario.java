@@ -55,6 +55,9 @@ public class Usuario {
     @Column(length = 500)
     private String fotoPerfilUrl;
 
+    @Column(length = 255)
+    private String fotoPerfilPublicId;
+
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "paciente_id", unique = true)
     private Paciente paciente;
@@ -158,6 +161,14 @@ public class Usuario {
 
     public void setFotoPerfilUrl(String fotoPerfilUrl) {
         this.fotoPerfilUrl = fotoPerfilUrl;
+    }
+
+    public String getFotoPerfilPublicId() {
+        return fotoPerfilPublicId;
+    }
+
+    public void setFotoPerfilPublicId(String fotoPerfilPublicId) {
+        this.fotoPerfilPublicId = fotoPerfilPublicId;
     }
 
     public Paciente getPaciente() {

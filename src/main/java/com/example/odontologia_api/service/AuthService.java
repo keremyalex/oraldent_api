@@ -2,6 +2,7 @@ package com.example.odontologia_api.service;
 
 import com.example.odontologia_api.dto.AuthResponse;
 import com.example.odontologia_api.dto.ActualizarFotoPerfilRequest;
+import com.example.odontologia_api.dto.CloudinaryUploadResult;
 import com.example.odontologia_api.dto.LoginRequest;
 import com.example.odontologia_api.dto.RegisterPacienteRequest;
 import com.example.odontologia_api.dto.RegisterStaffRequest;
@@ -21,6 +22,7 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 @Service
 public class AuthService {
@@ -30,19 +32,22 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final AuthenticationManager authenticationManager;
     private final JwtService jwtService;
+    private final CloudinaryService cloudinaryService;
 
     public AuthService(
             UsuarioRepository usuarioRepository,
             PacienteService pacienteService,
             PasswordEncoder passwordEncoder,
             AuthenticationManager authenticationManager,
-            JwtService jwtService
+            JwtService jwtService,
+            CloudinaryService cloudinaryService
     ) {
         this.usuarioRepository = usuarioRepository;
         this.pacienteService = pacienteService;
         this.passwordEncoder = passwordEncoder;
         this.authenticationManager = authenticationManager;
         this.jwtService = jwtService;
+        this.cloudinaryService = cloudinaryService;
     }
 
     @Transactional
@@ -117,6 +122,22 @@ public class AuthService {
         Usuario usuario = usuarioRepository.findById(userId)
                 .orElseThrow(() -> new RecursoNoEncontradoException("Usuario no encontrado."));
         usuario.setFotoPerfilUrl(request.fotoPerfilUrl().trim());
+        return toUsuarioResponse(usuarioRepository.save(usuario));
+    }
+
+    @Transactional
+    public UsuarioAuthResponse actualizarFotoPerfil(Long userId, MultipartFile archivo) {
+        Usuario usuario = usuarioRepository.findById(userId)
+                .orElseThrow(() -> new RecursoNoEncontradoException("Usuario no encontrado."));
+
+        CloudinaryUploadResult uploadResult = cloudinaryService.replaceImage(
+                archivo,
+                "oraldent/usuarios",
+                usuario.getFotoPerfilPublicId()
+        );
+
+        usuario.setFotoPerfilUrl(uploadResult.url());
+        usuario.setFotoPerfilPublicId(uploadResult.publicId());
         return toUsuarioResponse(usuarioRepository.save(usuario));
     }
 

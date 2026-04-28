@@ -1,5 +1,6 @@
 package com.example.odontologia_api.service;
 
+import com.example.odontologia_api.dto.CloudinaryUploadResult;
 import com.example.odontologia_api.dto.PacienteRequest;
 import com.example.odontologia_api.dto.PacienteResponse;
 import com.example.odontologia_api.dto.RegisterPacienteRequest;
@@ -9,14 +10,17 @@ import com.example.odontologia_api.repository.PacienteRepository;
 import java.util.List;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 @Service
 public class PacienteService {
 
     private final PacienteRepository pacienteRepository;
+    private final CloudinaryService cloudinaryService;
 
-    public PacienteService(PacienteRepository pacienteRepository) {
+    public PacienteService(PacienteRepository pacienteRepository, CloudinaryService cloudinaryService) {
         this.pacienteRepository = pacienteRepository;
+        this.cloudinaryService = cloudinaryService;
     }
 
     @Transactional(readOnly = true)
@@ -51,6 +55,19 @@ public class PacienteService {
         Paciente paciente = buscarActivo(id);
         paciente.setActivo(false);
         pacienteRepository.save(paciente);
+    }
+
+    @Transactional
+    public PacienteResponse actualizarFoto(Long id, MultipartFile archivo) {
+        Paciente paciente = buscarActivo(id);
+        CloudinaryUploadResult uploadResult = cloudinaryService.replaceImage(
+                archivo,
+                "oraldent/pacientes",
+                paciente.getFotoPublicId()
+        );
+        paciente.setFotoUrl(uploadResult.url());
+        paciente.setFotoPublicId(uploadResult.publicId());
+        return toResponse(pacienteRepository.save(paciente));
     }
 
     @Transactional(readOnly = true)

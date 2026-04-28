@@ -46,6 +46,9 @@ public class Paciente {
     @Column(length = 500)
     private String fotoUrl;
 
+    @Column(length = 255)
+    private String fotoPublicId;
+
     @Column(nullable = false)
     private Boolean activo = true;
 
@@ -143,6 +146,14 @@ public class Paciente {
 
     public void setFotoUrl(String fotoUrl) {
         this.fotoUrl = fotoUrl;
+    }
+
+    public String getFotoPublicId() {
+        return fotoPublicId;
+    }
+
+    public void setFotoPublicId(String fotoPublicId) {
+        this.fotoPublicId = fotoPublicId;
     }
 
     public Boolean getActivo() {
