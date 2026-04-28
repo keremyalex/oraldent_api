@@ -1,6 +1,7 @@
 package com.example.odontologia_api.service;
 
 import com.example.odontologia_api.dto.AuthResponse;
+import com.example.odontologia_api.dto.ActualizarPerfilRequest;
 import com.example.odontologia_api.dto.ActualizarFotoPerfilRequest;
 import com.example.odontologia_api.dto.CloudinaryUploadResult;
 import com.example.odontologia_api.dto.LoginRequest;
@@ -117,6 +118,32 @@ public class AuthService {
     }
 
     @Transactional
+    public AuthResponse actualizarPerfil(Long userId, ActualizarPerfilRequest request) {
+        Usuario usuario = usuarioRepository.findById(userId)
+                .orElseThrow(() -> new RecursoNoEncontradoException("Usuario no encontrado."));
+
+        String correoNormalizado = normalizarCorreo(request.correo());
+        usuarioRepository.findByCorreoIgnoreCase(correoNormalizado)
+                .filter(existente -> !existente.getId().equals(userId))
+                .ifPresent(existente -> {
+                    throw new ReglaNegocioException("Ya existe un usuario registrado con ese correo.");
+                });
+        usuarioRepository.findByCelular(request.celular())
+                .filter(existente -> !existente.getId().equals(userId))
+                .ifPresent(existente -> {
+                    throw new ReglaNegocioException("Ya existe un usuario registrado con ese celular.");
+                });
+
+        usuario.setNombre(request.nombre().trim());
+        usuario.setApellidoPaterno(request.apellidoPaterno().trim());
+        usuario.setApellidoMaterno(normalizarTextoOpcional(request.apellidoMaterno()));
+        usuario.setCorreo(correoNormalizado);
+        usuario.setCelular(request.celular().trim());
+
+        return construirAuthResponse(usuarioRepository.save(usuario));
+    }
+
+    @Transactional
     public UsuarioAuthResponse actualizarFotoPerfil(Long userId, ActualizarFotoPerfilRequest request) {
         Usuario usuario = usuarioRepository.findById(userId)
                 .orElseThrow(() -> new RecursoNoEncontradoException("Usuario no encontrado."));
@@ -177,5 +204,12 @@ public class AuthService {
             return null;
         }
         return correo.trim().toLowerCase();
+    }
+
+    private String normalizarTextoOpcional(String value) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+        return value.trim();
     }
 }

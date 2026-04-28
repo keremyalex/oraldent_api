@@ -1,6 +1,7 @@
 package com.example.odontologia_api.controller;
 
 import com.example.odontologia_api.dto.AuthResponse;
+import com.example.odontologia_api.dto.ActualizarPerfilRequest;
 import com.example.odontologia_api.dto.ActualizarFotoPerfilRequest;
 import com.example.odontologia_api.dto.LoginRequest;
 import com.example.odontologia_api.dto.RegisterPacienteRequest;
@@ -61,6 +62,15 @@ public class AuthController {
     @Operation(summary = "Obtener datos del usuario autenticado")
     public UsuarioAuthResponse me(@AuthenticationPrincipal UsuarioDetails usuarioDetails) {
         return authService.me(usuarioDetails.getId());
+    }
+
+    @PutMapping("/me")
+    @Operation(summary = "Actualizar datos del usuario autenticado")
+    public AuthResponse actualizarPerfil(
+            @AuthenticationPrincipal UsuarioDetails usuarioDetails,
+            @Valid @RequestBody ActualizarPerfilRequest request
+    ) {
+        return authService.actualizarPerfil(usuarioDetails.getId(), request);
     }
 
     @PutMapping("/me/foto-perfil")
