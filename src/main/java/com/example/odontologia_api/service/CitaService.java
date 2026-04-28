@@ -119,6 +119,10 @@ public class CitaService {
 
     @Transactional(readOnly = true)
     public DisponibilidadResponse disponibilidad(LocalDate fecha) {
+        if (fecha.isBefore(LocalDate.now())) {
+            return new DisponibilidadResponse(fecha, List.of());
+        }
+
         List<LocalTime> disponibles = horarioAtencionService.listarPorDia(DiaSemana.fromDayOfWeek(fecha.getDayOfWeek()))
                 .stream()
                 .flatMap(horario -> generarBloquesDisponibles(fecha, horario).stream())
