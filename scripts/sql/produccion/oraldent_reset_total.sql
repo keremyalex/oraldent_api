@@ -3,6 +3,9 @@ begin;
 -- Script destructivo para desarrollo/demo.
 -- Elimina tablas existentes, las recrea y vuelve a cargar los datos base.
 
+drop table if exists odontograma_caras cascade;
+drop table if exists odontograma_dientes cascade;
+drop table if exists odontogramas cascade;
 drop table if exists citas cascade;
 drop table if exists usuarios cascade;
 drop table if exists horarios cascade;
@@ -100,6 +103,57 @@ create table citas (
     constraint ck_citas_rango check (fecha_hora_inicio < fecha_hora_fin)
 );
 
+create table odontogramas (
+    id bigserial primary key,
+    paciente_id bigint not null,
+    usuario_id bigint,
+    cita_id bigint,
+    observaciones varchar(500),
+    activo boolean not null default true,
+    fecha_creacion timestamp without time zone not null default now(),
+    fecha_actualizacion timestamp without time zone not null default now(),
+    constraint fk_odontogramas_paciente foreign key (paciente_id) references pacientes (id),
+    constraint fk_odontogramas_usuario foreign key (usuario_id) references usuarios (id),
+    constraint fk_odontogramas_cita foreign key (cita_id) references citas (id)
+);
+
+create table odontograma_dientes (
+    id bigserial primary key,
+    odontograma_id bigint not null,
+    numero_fdi integer not null,
+    cuadrante integer not null,
+    posicion integer not null,
+    ausente boolean not null default false,
+    implante boolean not null default false,
+    corona boolean not null default false,
+    endodoncia boolean not null default false,
+    extraccion_indicada boolean not null default false,
+    movilidad integer,
+    observacion varchar(500),
+    constraint fk_odontograma_dientes_odontograma foreign key (odontograma_id) references odontogramas (id) on delete cascade,
+    constraint ck_odontograma_dientes_cuadrante check (cuadrante between 1 and 4),
+    constraint ck_odontograma_dientes_posicion check (posicion between 1 and 8),
+    constraint ck_odontograma_dientes_numero_fdi check (numero_fdi between 11 and 48),
+    constraint ck_odontograma_dientes_movilidad check (movilidad is null or movilidad between 0 and 3),
+    constraint uk_odontograma_dientes_fdi unique (odontograma_id, numero_fdi)
+);
+
+create table odontograma_caras (
+    id bigserial primary key,
+    diente_id bigint not null,
+    tipo varchar(20) not null,
+    color varchar(20) not null default 'NINGUNO',
+    descripcion varchar(500),
+    constraint fk_odontograma_caras_diente foreign key (diente_id) references odontograma_dientes (id) on delete cascade,
+    constraint ck_odontograma_caras_tipo check (
+        tipo in ('OCLUSAL', 'MESIAL', 'DISTAL', 'VESTIBULAR', 'PALATINO')
+    ),
+    constraint ck_odontograma_caras_color check (
+        color in ('NINGUNO', 'ROJO', 'AZUL')
+    ),
+    constraint uk_odontograma_caras_tipo unique (diente_id, tipo)
+);
+
 create index idx_pacientes_celular on pacientes (celular);
 create index idx_pacientes_correo on pacientes (correo);
 create index idx_citas_paciente_id on citas (paciente_id);
@@ -107,6 +161,12 @@ create index idx_citas_usuario_id on citas (usuario_id);
 create index idx_citas_servicio_id on citas (servicio_id);
 create index idx_citas_fecha_hora_inicio on citas (fecha_hora_inicio);
 create index idx_horarios_dia_semana on horarios (dia_semana);
+create unique index uk_odontogramas_paciente_activo on odontogramas (paciente_id) where activo;
+create index idx_odontogramas_paciente_id on odontogramas (paciente_id);
+create index idx_odontogramas_usuario_id on odontogramas (usuario_id);
+create index idx_odontogramas_cita_id on odontogramas (cita_id);
+create index idx_odontograma_dientes_odontograma_id on odontograma_dientes (odontograma_id);
+create index idx_odontograma_caras_diente_id on odontograma_caras (diente_id);
 
 insert into servicios (nombre, descripcion, activo)
 values
@@ -260,5 +320,116 @@ values
         'ORALA006',
         'Control sabatino.'
     );
+
+with semillas(celular, codigo_cita, observaciones) as (
+    values
+        ('70010001', 'ORALA001', 'Odontograma inicial con hallazgos de valoracion.'),
+        ('70010002', 'ORALA002', 'Odontograma inicial para apoyo diagnostico.'),
+        ('70010003', 'ORALA003', 'Odontograma inicial de control de ortodoncia.')
+)
+insert into odontogramas (paciente_id, usuario_id, cita_id, observaciones, activo)
+select
+    p.id,
+    u.id,
+    c.id,
+    s.observaciones,
+    true
+from semillas s
+join pacientes p on p.celular = s.celular
+left join usuarios u on u.correo = 'admin@oraldent.com'
+left join citas c on c.codigo_gestion = s.codigo_cita;
+
+with posiciones(cuadrante, posicion) as (
+    values
+        (1, 1), (1, 2), (1, 3), (1, 4), (1, 5), (1, 6), (1, 7), (1, 8),
+        (2, 1), (2, 2), (2, 3), (2, 4), (2, 5), (2, 6), (2, 7), (2, 8),
+        (3, 1), (3, 2), (3, 3), (3, 4), (3, 5), (3, 6), (3, 7), (3, 8),
+        (4, 1), (4, 2), (4, 3), (4, 4), (4, 5), (4, 6), (4, 7), (4, 8)
+)
+insert into odontograma_dientes (odontograma_id, numero_fdi, cuadrante, posicion)
+select
+    o.id,
+    posiciones.cuadrante * 10 + posiciones.posicion,
+    posiciones.cuadrante,
+    posiciones.posicion
+from odontogramas o
+join pacientes p on p.id = o.paciente_id
+cross join posiciones
+where p.celular in ('70010001', '70010002', '70010003');
+
+with tipos(tipo) as (
+    values ('OCLUSAL'), ('MESIAL'), ('DISTAL'), ('VESTIBULAR'), ('PALATINO')
+)
+insert into odontograma_caras (diente_id, tipo, color)
+select d.id, tipos.tipo, 'NINGUNO'
+from odontograma_dientes d
+join odontogramas o on o.id = d.odontograma_id
+join pacientes p on p.id = o.paciente_id
+cross join tipos
+where p.celular in ('70010001', '70010002', '70010003');
+
+update odontograma_caras c
+set color = 'ROJO',
+    descripcion = 'Caries proximal pendiente de tratamiento.'
+from odontograma_dientes d
+join odontogramas o on o.id = d.odontograma_id
+join pacientes p on p.id = o.paciente_id
+where c.diente_id = d.id
+  and p.celular = '70010001'
+  and d.numero_fdi = 16
+  and c.tipo = 'MESIAL';
+
+update odontograma_caras c
+set color = 'AZUL',
+    descripcion = 'Restauracion existente en buen estado.'
+from odontograma_dientes d
+join odontogramas o on o.id = d.odontograma_id
+join pacientes p on p.id = o.paciente_id
+where c.diente_id = d.id
+  and p.celular = '70010001'
+  and d.numero_fdi = 36
+  and c.tipo = 'OCLUSAL';
+
+update odontograma_dientes d
+set ausente = true,
+    observacion = 'Pieza ausente referida por el paciente.'
+from odontogramas o
+join pacientes p on p.id = o.paciente_id
+where d.odontograma_id = o.id
+  and p.celular = '70010002'
+  and d.numero_fdi = 46;
+
+update odontograma_caras c
+set color = 'ROJO',
+    descripcion = 'Lesion cariosa a evaluar.'
+from odontograma_dientes d
+join odontogramas o on o.id = d.odontograma_id
+join pacientes p on p.id = o.paciente_id
+where c.diente_id = d.id
+  and p.celular = '70010002'
+  and d.numero_fdi = 24
+  and c.tipo = 'DISTAL';
+
+update odontograma_caras c
+set color = 'AZUL',
+    descripcion = 'Sellado/restauracion estetica existente.'
+from odontograma_dientes d
+join odontogramas o on o.id = d.odontograma_id
+join pacientes p on p.id = o.paciente_id
+where c.diente_id = d.id
+  and p.celular = '70010003'
+  and d.numero_fdi = 11
+  and c.tipo = 'VESTIBULAR';
+
+update odontograma_caras c
+set color = 'ROJO',
+    descripcion = 'Controlar desgaste incisal.'
+from odontograma_dientes d
+join odontogramas o on o.id = d.odontograma_id
+join pacientes p on p.id = o.paciente_id
+where c.diente_id = d.id
+  and p.celular = '70010003'
+  and d.numero_fdi = 31
+  and c.tipo = 'OCLUSAL';
 
 commit;

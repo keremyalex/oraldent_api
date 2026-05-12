@@ -2,14 +2,20 @@ package com.example.odontologia_api.config;
 
 import com.example.odontologia_api.entity.Cita;
 import com.example.odontologia_api.entity.HorarioAtencion;
+import com.example.odontologia_api.entity.Odontograma;
+import com.example.odontologia_api.entity.OdontogramaCara;
+import com.example.odontologia_api.entity.OdontogramaDiente;
 import com.example.odontologia_api.entity.Paciente;
 import com.example.odontologia_api.entity.Servicio;
 import com.example.odontologia_api.entity.Usuario;
+import com.example.odontologia_api.enums.ColorCaraOdontograma;
 import com.example.odontologia_api.enums.DiaSemana;
 import com.example.odontologia_api.enums.EstadoCita;
 import com.example.odontologia_api.enums.RolUsuario;
+import com.example.odontologia_api.enums.TipoCaraOdontograma;
 import com.example.odontologia_api.repository.CitaRepository;
 import com.example.odontologia_api.repository.HorarioAtencionRepository;
+import com.example.odontologia_api.repository.OdontogramaRepository;
 import com.example.odontologia_api.repository.PacienteRepository;
 import com.example.odontologia_api.repository.ServicioRepository;
 import com.example.odontologia_api.repository.UsuarioRepository;
@@ -34,6 +40,7 @@ public class DataSeeder implements CommandLineRunner {
     private final HorarioAtencionRepository horarioRepository;
     private final ServicioRepository servicioRepository;
     private final CitaRepository citaRepository;
+    private final OdontogramaRepository odontogramaRepository;
     private final PasswordEncoder passwordEncoder;
 
     @Value("${app.seed.enabled:false}")
@@ -45,6 +52,7 @@ public class DataSeeder implements CommandLineRunner {
             HorarioAtencionRepository horarioRepository,
             ServicioRepository servicioRepository,
             CitaRepository citaRepository,
+            OdontogramaRepository odontogramaRepository,
             PasswordEncoder passwordEncoder
     ) {
         this.usuarioRepository = usuarioRepository;
@@ -52,6 +60,7 @@ public class DataSeeder implements CommandLineRunner {
         this.horarioRepository = horarioRepository;
         this.servicioRepository = servicioRepository;
         this.citaRepository = citaRepository;
+        this.odontogramaRepository = odontogramaRepository;
         this.passwordEncoder = passwordEncoder;
     }
 
@@ -84,7 +93,7 @@ public class DataSeeder implements CommandLineRunner {
         );
         Usuario admin = usuarioRepository.findByCorreoIgnoreCase("admin@oraldent.com").orElseThrow();
 
-        crearCitaSiNoExiste(
+        Cita cita1 = crearCitaSiNoExiste(
                 paciente1,
                 admin,
                 implantologia,
@@ -94,7 +103,7 @@ public class DataSeeder implements CommandLineRunner {
                 "ORALA001",
                 "Primera valoracion de la semana."
         );
-        crearCitaSiNoExiste(
+        Cita cita2 = crearCitaSiNoExiste(
                 paciente2,
                 admin,
                 rayoX,
@@ -104,7 +113,7 @@ public class DataSeeder implements CommandLineRunner {
                 "ORALA002",
                 "Paciente referido para apoyo diagnostico."
         );
-        crearCitaSiNoExiste(
+        Cita cita3 = crearCitaSiNoExiste(
                 paciente3,
                 null,
                 ortodoncia,
@@ -144,6 +153,10 @@ public class DataSeeder implements CommandLineRunner {
                 "ORALA006",
                 "Control sabatino."
         );
+
+        crearOdontogramaSiNoExiste(paciente1, admin, cita1, "Odontograma inicial con hallazgos de valoracion.");
+        crearOdontogramaSiNoExiste(paciente2, admin, cita2, "Odontograma inicial para apoyo diagnostico.");
+        crearOdontogramaSiNoExiste(paciente3, admin, cita3, "Odontograma inicial de control de ortodoncia.");
         log.info("Seed de demo verificado correctamente.");
     }
 
@@ -274,7 +287,7 @@ public class DataSeeder implements CommandLineRunner {
         return usuarioRepository.save(usuario);
     }
 
-    private void crearCitaSiNoExiste(
+    private Cita crearCitaSiNoExiste(
             Paciente paciente,
             Usuario usuarioRegistrador,
             Servicio servicio,
@@ -284,8 +297,9 @@ public class DataSeeder implements CommandLineRunner {
             String codigo,
             String notas
     ) {
-        if (citaRepository.existsByCodigoGestion(codigo)) {
-            return;
+        Optional<Cita> citaExistente = citaRepository.findByCodigoGestion(codigo);
+        if (citaExistente.isPresent()) {
+            return citaExistente.get();
         }
 
         LocalDateTime fechaHoraFin = fechaHoraInicio.plusMinutes(30);
@@ -299,6 +313,86 @@ public class DataSeeder implements CommandLineRunner {
         cita.setEstado(estado);
         cita.setCodigoGestion(codigo);
         cita.setNotas(notas);
-        citaRepository.save(cita);
+        return citaRepository.save(cita);
+    }
+
+    private void crearOdontogramaSiNoExiste(Paciente paciente, Usuario usuario, Cita cita, String observaciones) {
+        if (odontogramaRepository.existsByPacienteAndActivoTrue(paciente)) {
+            return;
+        }
+
+        Odontograma odontograma = new Odontograma();
+        odontograma.setPaciente(paciente);
+        odontograma.setUsuario(usuario);
+        odontograma.setCita(cita);
+        odontograma.setObservaciones(observaciones);
+        odontograma.setActivo(true);
+
+        for (int cuadrante = 1; cuadrante <= 4; cuadrante++) {
+            for (int posicion = 1; posicion <= 8; posicion++) {
+                OdontogramaDiente diente = new OdontogramaDiente();
+                diente.setCuadrante(cuadrante);
+                diente.setPosicion(posicion);
+                diente.setNumeroFdi(cuadrante * 10 + posicion);
+                for (TipoCaraOdontograma tipo : TipoCaraOdontograma.values()) {
+                    OdontogramaCara cara = new OdontogramaCara();
+                    cara.setTipo(tipo);
+                    cara.setColor(ColorCaraOdontograma.NINGUNO);
+                    diente.addCara(cara);
+                }
+                odontograma.addDiente(diente);
+            }
+        }
+
+        aplicarHallazgosDemo(odontograma, paciente.getCelular());
+        odontogramaRepository.save(odontograma);
+    }
+
+    private void aplicarHallazgosDemo(Odontograma odontograma, String celularPaciente) {
+        if ("70010001".equals(celularPaciente)) {
+            marcarCara(odontograma, 16, TipoCaraOdontograma.MESIAL, ColorCaraOdontograma.ROJO, "Caries proximal pendiente de tratamiento.");
+            marcarCara(odontograma, 36, TipoCaraOdontograma.OCLUSAL, ColorCaraOdontograma.AZUL, "Restauracion existente en buen estado.");
+            return;
+        }
+
+        if ("70010002".equals(celularPaciente)) {
+            marcarDienteAusente(odontograma, 46, "Pieza ausente referida por el paciente.");
+            marcarCara(odontograma, 24, TipoCaraOdontograma.DISTAL, ColorCaraOdontograma.ROJO, "Lesion cariosa a evaluar.");
+            return;
+        }
+
+        if ("70010003".equals(celularPaciente)) {
+            marcarCara(odontograma, 11, TipoCaraOdontograma.VESTIBULAR, ColorCaraOdontograma.AZUL, "Sellado/restauracion estetica existente.");
+            marcarCara(odontograma, 31, TipoCaraOdontograma.OCLUSAL, ColorCaraOdontograma.ROJO, "Controlar desgaste incisal.");
+        }
+    }
+
+    private void marcarDienteAusente(Odontograma odontograma, int numeroFdi, String observacion) {
+        odontograma.getDientes().stream()
+                .filter(diente -> diente.getNumeroFdi() == numeroFdi)
+                .findFirst()
+                .ifPresent(diente -> {
+                    diente.setAusente(true);
+                    diente.setObservacion(observacion);
+                });
+    }
+
+    private void marcarCara(
+            Odontograma odontograma,
+            int numeroFdi,
+            TipoCaraOdontograma tipo,
+            ColorCaraOdontograma color,
+            String descripcion
+    ) {
+        odontograma.getDientes().stream()
+                .filter(diente -> diente.getNumeroFdi() == numeroFdi)
+                .findFirst()
+                .flatMap(diente -> diente.getCaras().stream()
+                        .filter(cara -> cara.getTipo() == tipo)
+                        .findFirst())
+                .ifPresent(cara -> {
+                    cara.setColor(color);
+                    cara.setDescripcion(descripcion);
+                });
     }
 }

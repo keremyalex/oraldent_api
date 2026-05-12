@@ -14,6 +14,8 @@ public interface CitaRepository extends JpaRepository<Cita, Long> {
 
     boolean existsByCodigoGestion(String codigoGestion);
 
+    Optional<Cita> findByCodigoGestion(String codigoGestion);
+
     List<Cita> findAllByOrderByFechaHoraInicioAsc();
 
     List<Cita> findByFechaHoraInicioBetweenOrderByFechaHoraInicioAsc(LocalDateTime inicio, LocalDateTime fin);
