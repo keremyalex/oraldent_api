@@ -70,6 +70,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.DELETE, "/api/pacientes/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.GET, "/api/citas/**").hasAnyRole("ADMIN", "DOCTOR", "RECEPCION")
                         .requestMatchers("/api/odontogramas/**", "/api/pacientes/*/odontograma", "/api/pacientes/*/odontogramas").hasAnyRole("ADMIN", "DOCTOR", "RECEPCION")
+                        .requestMatchers("/api/periodontogramas/**", "/api/pacientes/*/periodontograma", "/api/pacientes/*/periodontogramas").hasAnyRole("ADMIN", "DOCTOR", "RECEPCION")
                         .anyRequest().authenticated()
                 )
                 .authenticationProvider(authenticationProvider())

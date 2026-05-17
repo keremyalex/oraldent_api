@@ -3,6 +3,9 @@ begin;
 -- Script destructivo para desarrollo/demo.
 -- Elimina tablas existentes, las recrea y vuelve a cargar los datos base.
 
+drop table if exists periodontograma_sitios cascade;
+drop table if exists periodontograma_dientes cascade;
+drop table if exists periodontogramas cascade;
 drop table if exists odontograma_caras cascade;
 drop table if exists odontograma_dientes cascade;
 drop table if exists odontogramas cascade;
@@ -154,6 +157,59 @@ create table odontograma_caras (
     constraint uk_odontograma_caras_tipo unique (diente_id, tipo)
 );
 
+create table periodontogramas (
+    id bigserial primary key,
+    paciente_id bigint not null,
+    usuario_id bigint,
+    cita_id bigint,
+    observaciones varchar(500),
+    activo boolean not null default true,
+    fecha_creacion timestamp without time zone not null default now(),
+    fecha_actualizacion timestamp without time zone not null default now(),
+    constraint fk_periodontogramas_paciente foreign key (paciente_id) references pacientes (id),
+    constraint fk_periodontogramas_usuario foreign key (usuario_id) references usuarios (id),
+    constraint fk_periodontogramas_cita foreign key (cita_id) references citas (id)
+);
+
+create table periodontograma_dientes (
+    id bigserial primary key,
+    periodontograma_id bigint not null,
+    numero_fdi integer not null,
+    cuadrante integer not null,
+    posicion integer not null,
+    ausente boolean not null default false,
+    implante boolean not null default false,
+    movilidad integer,
+    furcacion varchar(20) not null default 'NINGUNA',
+    observacion varchar(500),
+    constraint fk_periodontograma_dientes_periodontograma foreign key (periodontograma_id) references periodontogramas (id) on delete cascade,
+    constraint ck_periodontograma_dientes_cuadrante check (cuadrante between 1 and 4),
+    constraint ck_periodontograma_dientes_posicion check (posicion between 1 and 8),
+    constraint ck_periodontograma_dientes_numero_fdi check (numero_fdi between 11 and 48),
+    constraint ck_periodontograma_dientes_movilidad check (movilidad is null or movilidad between 0 and 3),
+    constraint ck_periodontograma_dientes_furcacion check (furcacion in ('NINGUNA', 'GRADO_I', 'GRADO_II', 'GRADO_III')),
+    constraint uk_periodontograma_dientes_fdi unique (periodontograma_id, numero_fdi)
+);
+
+create table periodontograma_sitios (
+    id bigserial primary key,
+    diente_id bigint not null,
+    sitio varchar(30) not null,
+    sangrado_sondaje boolean not null default false,
+    placa boolean not null default false,
+    supuracion boolean not null default false,
+    margen_gingival_mm integer not null default 0,
+    profundidad_sondaje_mm integer not null default 0,
+    observacion varchar(500),
+    constraint fk_periodontograma_sitios_diente foreign key (diente_id) references periodontograma_dientes (id) on delete cascade,
+    constraint ck_periodontograma_sitios_tipo check (
+        sitio in ('MESIOVESTIBULAR', 'VESTIBULAR', 'DISTOVESTIBULAR', 'MESIOPALATINO', 'PALATINO', 'DISTOPALATINO')
+    ),
+    constraint ck_periodontograma_sitios_margen check (margen_gingival_mm between -20 and 20),
+    constraint ck_periodontograma_sitios_profundidad check (profundidad_sondaje_mm between 0 and 20),
+    constraint uk_periodontograma_sitios_tipo unique (diente_id, sitio)
+);
+
 create index idx_pacientes_celular on pacientes (celular);
 create index idx_pacientes_correo on pacientes (correo);
 create index idx_citas_paciente_id on citas (paciente_id);
@@ -167,6 +223,12 @@ create index idx_odontogramas_usuario_id on odontogramas (usuario_id);
 create index idx_odontogramas_cita_id on odontogramas (cita_id);
 create index idx_odontograma_dientes_odontograma_id on odontograma_dientes (odontograma_id);
 create index idx_odontograma_caras_diente_id on odontograma_caras (diente_id);
+create unique index uk_periodontogramas_paciente_activo on periodontogramas (paciente_id) where activo;
+create index idx_periodontogramas_paciente_id on periodontogramas (paciente_id);
+create index idx_periodontogramas_usuario_id on periodontogramas (usuario_id);
+create index idx_periodontogramas_cita_id on periodontogramas (cita_id);
+create index idx_periodontograma_dientes_periodontograma_id on periodontograma_dientes (periodontograma_id);
+create index idx_periodontograma_sitios_diente_id on periodontograma_sitios (diente_id);
 
 insert into servicios (nombre, descripcion, activo)
 values
@@ -431,5 +493,104 @@ where c.diente_id = d.id
   and p.celular = '70010003'
   and d.numero_fdi = 31
   and c.tipo = 'OCLUSAL';
+
+with semillas(celular, codigo_cita, observaciones) as (
+    values
+        ('70010001', 'ORALA001', 'Periodontograma inicial con control de sondaje.'),
+        ('70010002', 'ORALA002', 'Periodontograma de valoracion periodontal inicial.'),
+        ('70010003', 'ORALA003', 'Periodontograma de seguimiento de control.')
+)
+insert into periodontogramas (paciente_id, usuario_id, cita_id, observaciones, activo)
+select
+    p.id,
+    u.id,
+    c.id,
+    s.observaciones,
+    true
+from semillas s
+join pacientes p on p.celular = s.celular
+left join usuarios u on u.correo = 'admin@oraldent.com'
+left join citas c on c.codigo_gestion = s.codigo_cita;
+
+with posiciones(cuadrante, posicion) as (
+    values
+        (1, 1), (1, 2), (1, 3), (1, 4), (1, 5), (1, 6), (1, 7), (1, 8),
+        (2, 1), (2, 2), (2, 3), (2, 4), (2, 5), (2, 6), (2, 7), (2, 8),
+        (3, 1), (3, 2), (3, 3), (3, 4), (3, 5), (3, 6), (3, 7), (3, 8),
+        (4, 1), (4, 2), (4, 3), (4, 4), (4, 5), (4, 6), (4, 7), (4, 8)
+)
+insert into periodontograma_dientes (periodontograma_id, numero_fdi, cuadrante, posicion)
+select
+    p.id,
+    posiciones.cuadrante * 10 + posiciones.posicion,
+    posiciones.cuadrante,
+    posiciones.posicion
+from periodontogramas p
+join pacientes pa on pa.id = p.paciente_id
+cross join posiciones
+where pa.celular in ('70010001', '70010002', '70010003');
+
+with sitios(sitio) as (
+    values
+        ('MESIOVESTIBULAR'),
+        ('VESTIBULAR'),
+        ('DISTOVESTIBULAR'),
+        ('MESIOPALATINO'),
+        ('PALATINO'),
+        ('DISTOPALATINO')
+)
+insert into periodontograma_sitios (diente_id, sitio)
+select d.id, sitios.sitio
+from periodontograma_dientes d
+join periodontogramas p on p.id = d.periodontograma_id
+join pacientes pa on pa.id = p.paciente_id
+cross join sitios
+where pa.celular in ('70010001', '70010002', '70010003');
+
+update periodontograma_dientes d
+set movilidad = 1,
+    furcacion = 'GRADO_I',
+    observacion = 'Molestia localizada en control periodontal.'
+from periodontogramas p
+join pacientes pa on pa.id = p.paciente_id
+where d.periodontograma_id = p.id
+  and pa.celular = '70010001'
+  and d.numero_fdi = 16;
+
+update periodontograma_dientes d
+set implante = true,
+    observacion = 'Implante en seguimiento periodontal.'
+from periodontogramas p
+join pacientes pa on pa.id = p.paciente_id
+where d.periodontograma_id = p.id
+  and pa.celular = '70010002'
+  and d.numero_fdi = 46;
+
+update periodontograma_sitios s
+set sangrado_sondaje = true,
+    placa = true,
+    margen_gingival_mm = 1,
+    profundidad_sondaje_mm = 5,
+    observacion = 'Sangrado positivo y bolsa periodontal localizada.'
+from periodontograma_dientes d
+join periodontogramas p on p.id = d.periodontograma_id
+join pacientes pa on pa.id = p.paciente_id
+where s.diente_id = d.id
+  and pa.celular = '70010001'
+  and d.numero_fdi = 16
+  and s.sitio = 'MESIOVESTIBULAR';
+
+update periodontograma_sitios s
+set supuracion = true,
+    margen_gingival_mm = 2,
+    profundidad_sondaje_mm = 6,
+    observacion = 'Supuracion al sondaje en control.'
+from periodontograma_dientes d
+join periodontogramas p on p.id = d.periodontograma_id
+join pacientes pa on pa.id = p.paciente_id
+where s.diente_id = d.id
+  and pa.celular = '70010003'
+  and d.numero_fdi = 36
+  and s.sitio = 'DISTOPALATINO';
 
 commit;
