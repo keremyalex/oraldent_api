@@ -8,6 +8,7 @@ public record OdontogramaResponse(
         PacienteResponse paciente,
         Long usuarioId,
         Long citaId,
+        Long fichaClinicaId,
         String observaciones,
         Boolean activo,
         LocalDateTime fechaCreacion,

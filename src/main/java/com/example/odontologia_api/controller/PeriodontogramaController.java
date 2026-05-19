@@ -61,6 +61,32 @@ public class PeriodontogramaController {
         );
     }
 
+    @GetMapping("/fichas/{fichaId}/periodontograma")
+    @Operation(summary = "Obtener o crear el periodontograma de una ficha clinica")
+    public PeriodontogramaResponse obtenerPorFicha(
+            @PathVariable Long fichaId,
+            @AuthenticationPrincipal UsuarioDetails usuarioDetails
+    ) {
+        return periodontogramaService.obtenerOCrearPorFicha(
+                fichaId,
+                usuarioDetails != null ? usuarioDetails.getId() : null
+        );
+    }
+
+    @PostMapping("/fichas/{fichaId}/periodontogramas")
+    @Operation(summary = "Crear un nuevo periodontograma para una ficha clinica")
+    public PeriodontogramaResponse crearParaFicha(
+            @PathVariable Long fichaId,
+            @RequestParam(required = false) String observaciones,
+            @AuthenticationPrincipal UsuarioDetails usuarioDetails
+    ) {
+        return periodontogramaService.crearParaFicha(
+                fichaId,
+                usuarioDetails != null ? usuarioDetails.getId() : null,
+                observaciones
+        );
+    }
+
     @PutMapping("/periodontogramas/{periodontogramaId}/observaciones")
     @Operation(summary = "Actualizar observaciones generales del periodontograma")
     public PeriodontogramaResponse actualizarObservaciones(

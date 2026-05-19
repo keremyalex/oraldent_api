@@ -50,8 +50,6 @@ public class OdontogramaDiente {
     @Column(nullable = false)
     private Boolean extraccionIndicada = false;
 
-    private Integer movilidad;
-
     @Column(length = 500)
     private String observacion;
 
@@ -137,14 +135,6 @@ public class OdontogramaDiente {
 
     public void setExtraccionIndicada(Boolean extraccionIndicada) {
         this.extraccionIndicada = extraccionIndicada;
-    }
-
-    public Integer getMovilidad() {
-        return movilidad;
-    }
-
-    public void setMovilidad(Integer movilidad) {
-        this.movilidad = movilidad;
     }
 
     public String getObservacion() {

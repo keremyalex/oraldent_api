@@ -12,7 +12,6 @@ public record OdontogramaDienteResponse(
         Boolean corona,
         Boolean endodoncia,
         Boolean extraccionIndicada,
-        Integer movilidad,
         String observacion,
         List<OdontogramaCaraResponse> caras
 ) {

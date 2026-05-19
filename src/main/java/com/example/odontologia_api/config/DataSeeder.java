@@ -1,27 +1,37 @@
 package com.example.odontologia_api.config;
 
 import com.example.odontologia_api.entity.Cita;
+import com.example.odontologia_api.entity.FichaClinica;
 import com.example.odontologia_api.entity.HorarioAtencion;
 import com.example.odontologia_api.entity.Odontograma;
 import com.example.odontologia_api.entity.OdontogramaCara;
 import com.example.odontologia_api.entity.OdontogramaDiente;
 import com.example.odontologia_api.entity.Paciente;
+import com.example.odontologia_api.entity.Periodontograma;
+import com.example.odontologia_api.entity.PeriodontogramaDiente;
+import com.example.odontologia_api.entity.PeriodontogramaSitio;
 import com.example.odontologia_api.entity.Servicio;
 import com.example.odontologia_api.entity.Usuario;
 import com.example.odontologia_api.enums.ColorCaraOdontograma;
 import com.example.odontologia_api.enums.DiaSemana;
 import com.example.odontologia_api.enums.EstadoCita;
+import com.example.odontologia_api.enums.FurcacionPeriodontograma;
 import com.example.odontologia_api.enums.RolUsuario;
+import com.example.odontologia_api.enums.SitioPeriodontograma;
 import com.example.odontologia_api.enums.TipoCaraOdontograma;
 import com.example.odontologia_api.repository.CitaRepository;
+import com.example.odontologia_api.repository.FichaClinicaRepository;
 import com.example.odontologia_api.repository.HorarioAtencionRepository;
 import com.example.odontologia_api.repository.OdontogramaRepository;
 import com.example.odontologia_api.repository.PacienteRepository;
+import com.example.odontologia_api.repository.PeriodontogramaRepository;
 import com.example.odontologia_api.repository.ServicioRepository;
 import com.example.odontologia_api.repository.UsuarioRepository;
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.Period;
 import java.util.Optional;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
@@ -40,7 +50,9 @@ public class DataSeeder implements CommandLineRunner {
     private final HorarioAtencionRepository horarioRepository;
     private final ServicioRepository servicioRepository;
     private final CitaRepository citaRepository;
+    private final FichaClinicaRepository fichaClinicaRepository;
     private final OdontogramaRepository odontogramaRepository;
+    private final PeriodontogramaRepository periodontogramaRepository;
     private final PasswordEncoder passwordEncoder;
 
     @Value("${app.seed.enabled:false}")
@@ -52,7 +64,9 @@ public class DataSeeder implements CommandLineRunner {
             HorarioAtencionRepository horarioRepository,
             ServicioRepository servicioRepository,
             CitaRepository citaRepository,
+            FichaClinicaRepository fichaClinicaRepository,
             OdontogramaRepository odontogramaRepository,
+            PeriodontogramaRepository periodontogramaRepository,
             PasswordEncoder passwordEncoder
     ) {
         this.usuarioRepository = usuarioRepository;
@@ -60,7 +74,9 @@ public class DataSeeder implements CommandLineRunner {
         this.horarioRepository = horarioRepository;
         this.servicioRepository = servicioRepository;
         this.citaRepository = citaRepository;
+        this.fichaClinicaRepository = fichaClinicaRepository;
         this.odontogramaRepository = odontogramaRepository;
+        this.periodontogramaRepository = periodontogramaRepository;
         this.passwordEncoder = passwordEncoder;
     }
 
@@ -154,9 +170,40 @@ public class DataSeeder implements CommandLineRunner {
                 "Control sabatino."
         );
 
-        crearOdontogramaSiNoExiste(paciente1, admin, cita1, "Odontograma inicial con hallazgos de valoracion.");
-        crearOdontogramaSiNoExiste(paciente2, admin, cita2, "Odontograma inicial para apoyo diagnostico.");
-        crearOdontogramaSiNoExiste(paciente3, admin, cita3, "Odontograma inicial de control de ortodoncia.");
+        FichaClinica ficha1 = crearFichaClinicaSiNoExiste(
+                paciente1,
+                admin,
+                cita1,
+                "Valoracion inicial para implante",
+                "Paciente refiere ausencia de pieza posterior y desea evaluar rehabilitacion con implante.",
+                "Sin antecedentes sistemicos relevantes. Refiere sensibilidad ocasional en sector posterior.",
+                true
+        );
+        FichaClinica ficha2 = crearFichaClinicaSiNoExiste(
+                paciente2,
+                admin,
+                cita2,
+                "Radiografia panoramica de control",
+                "Control por molestia al masticar y revision de pieza ausente.",
+                "Paciente refiere tratamiento medico anterior por hipertension controlada.",
+                false
+        );
+        FichaClinica ficha3 = crearFichaClinicaSiNoExiste(
+                paciente3,
+                admin,
+                cita3,
+                "Control de ortodoncia",
+                "Ajuste mensual y evaluacion de higiene durante tratamiento ortodontico.",
+                "Paciente sin alergias conocidas. Buen estado general.",
+                false
+        );
+
+        crearOdontogramaSiNoExiste(ficha1, paciente1, admin, cita1, "Odontograma inicial con hallazgos de valoracion.");
+        crearOdontogramaSiNoExiste(ficha2, paciente2, admin, cita2, "Odontograma inicial para apoyo diagnostico.");
+        crearOdontogramaSiNoExiste(ficha3, paciente3, admin, cita3, "Odontograma inicial de control de ortodoncia.");
+        crearPeriodontogramaSiNoExiste(ficha1, paciente1, admin, cita1, "Registro periodontal inicial sin compromiso severo.");
+        crearPeriodontogramaSiNoExiste(ficha2, paciente2, admin, cita2, "Registro periodontal de control con sangrado localizado.");
+        crearPeriodontogramaSiNoExiste(ficha3, paciente3, admin, cita3, "Registro periodontal para control preventivo.");
         log.info("Seed de demo verificado correctamente.");
     }
 
@@ -316,8 +363,93 @@ public class DataSeeder implements CommandLineRunner {
         return citaRepository.save(cita);
     }
 
-    private void crearOdontogramaSiNoExiste(Paciente paciente, Usuario usuario, Cita cita, String observaciones) {
-        if (odontogramaRepository.existsByPacienteAndActivoTrue(paciente)) {
+    private FichaClinica crearFichaClinicaSiNoExiste(
+            Paciente paciente,
+            Usuario usuario,
+            Cita cita,
+            String motivoConsulta,
+            String enfermedadActual,
+            String anamnesis,
+            boolean implantologia
+    ) {
+        Optional<FichaClinica> fichaExistente = fichaClinicaRepository
+                .findByPacienteAndActivoTrueOrderByFechaDescIdDesc(paciente)
+                .stream()
+                .filter(ficha -> ficha.getCita() != null && ficha.getCita().getId().equals(cita.getId()))
+                .findFirst();
+        if (fichaExistente.isPresent()) {
+            return fichaExistente.get();
+        }
+
+        FichaClinica ficha = new FichaClinica();
+        ficha.setPaciente(paciente);
+        ficha.setUsuario(usuario);
+        ficha.setCita(cita);
+        ficha.setFecha(cita.getFechaHoraInicio());
+        ficha.setEdad(calcularEdad(paciente.getFechaNacimiento(), cita.getFechaHoraInicio().toLocalDate()));
+        ficha.setSexo("No especificado");
+        ficha.setProcedencia("Cochabamba");
+        ficha.setOcupacion(implantologia ? "Comerciante" : "Estudiante");
+        ficha.setPresionArterial(implantologia ? "120/80" : "115/75");
+        ficha.setTemperatura(BigDecimal.valueOf(36.7));
+        ficha.setPulso(implantologia ? 78 : 74);
+        ficha.setMotivoConsulta(motivoConsulta);
+        ficha.setEnfermedadActual(enfermedadActual);
+        ficha.setAnamnesis(anamnesis);
+        ficha.setHemorragia(false);
+        ficha.setDiabetes(false);
+        ficha.setHipertension(!implantologia && "70010002".equals(paciente.getCelular()));
+        ficha.setEpilepsia(false);
+        ficha.setProblemasCardiovasculares(false);
+        ficha.setLipotimias(false);
+        ficha.setTratamientoMedicoActual("70010002".equals(paciente.getCelular()));
+        ficha.setAlergias("70010001".equals(paciente.getCelular()) ? "Niega alergias medicamentosas." : null);
+        ficha.setMedicamentoActual("70010002".equals(paciente.getCelular()) ? "Losartan 50 mg indicado por medico tratante." : null);
+        ficha.setOtrasPatologias("Sin otras patologias referidas.");
+        ficha.setExamenClinico(implantologia
+                ? "Ausencia de pieza posterior y mucosa sin lesiones aparentes."
+                : "Encías con inflamacion leve localizada y control de placa indicado.");
+        ficha.setExamenRadiografico(implantologia
+                ? "Se solicita radiografia panoramica para evaluar disponibilidad osea."
+                : "Radiografia de control sin lesiones periapicales evidentes.");
+        ficha.setDiagnostico(implantologia
+                ? "Edentulismo parcial con indicacion de evaluacion para implante."
+                : "Control odontologico con hallazgos leves.");
+        ficha.setTratamiento(implantologia
+                ? "Planificar fase diagnostica para rehabilitacion implantosoportada."
+                : "Profilaxis, control de higiene y seguimiento.");
+        ficha.setTecnicaAnestesia("No aplicada en esta consulta.");
+        ficha.setEvolucion("Pendiente de control segun plan de tratamiento.");
+        ficha.setActivo(true);
+        return fichaClinicaRepository.save(ficha);
+    }
+
+    private Integer calcularEdad(LocalDate fechaNacimiento, LocalDate fechaReferencia) {
+        if (fechaNacimiento == null) {
+            return null;
+        }
+        return Period.between(fechaNacimiento, fechaReferencia).getYears();
+    }
+
+    private void crearOdontogramaSiNoExiste(
+            FichaClinica ficha,
+            Paciente paciente,
+            Usuario usuario,
+            Cita cita,
+            String observaciones
+    ) {
+        Optional<Odontograma> porFicha = odontogramaRepository.findFirstByFichaClinicaAndActivoTrueOrderByIdDesc(ficha);
+        if (porFicha.isPresent()) {
+            return;
+        }
+
+        Optional<Odontograma> activoPaciente = odontogramaRepository.findFirstByPacienteAndActivoTrueOrderByIdDesc(paciente);
+        if (activoPaciente.isPresent()) {
+            Odontograma odontograma = activoPaciente.get();
+            if (odontograma.getFichaClinica() == null) {
+                odontograma.setFichaClinica(ficha);
+                odontogramaRepository.save(odontograma);
+            }
             return;
         }
 
@@ -325,6 +457,7 @@ public class DataSeeder implements CommandLineRunner {
         odontograma.setPaciente(paciente);
         odontograma.setUsuario(usuario);
         odontograma.setCita(cita);
+        odontograma.setFichaClinica(ficha);
         odontograma.setObservaciones(observaciones);
         odontograma.setActivo(true);
 
@@ -346,6 +479,93 @@ public class DataSeeder implements CommandLineRunner {
 
         aplicarHallazgosDemo(odontograma, paciente.getCelular());
         odontogramaRepository.save(odontograma);
+    }
+
+    private void crearPeriodontogramaSiNoExiste(
+            FichaClinica ficha,
+            Paciente paciente,
+            Usuario usuario,
+            Cita cita,
+            String observaciones
+    ) {
+        if (periodontogramaRepository.findFirstByFichaClinicaAndActivoTrueOrderByIdDesc(ficha).isPresent()) {
+            return;
+        }
+
+        Periodontograma periodontograma = new Periodontograma();
+        periodontograma.setPaciente(paciente);
+        periodontograma.setUsuario(usuario);
+        periodontograma.setCita(cita);
+        periodontograma.setFichaClinica(ficha);
+        periodontograma.setObservaciones(observaciones);
+        periodontograma.setActivo(true);
+
+        for (int cuadrante = 1; cuadrante <= 4; cuadrante++) {
+            for (int posicion = 1; posicion <= 8; posicion++) {
+                PeriodontogramaDiente diente = new PeriodontogramaDiente();
+                diente.setCuadrante(cuadrante);
+                diente.setPosicion(posicion);
+                diente.setNumeroFdi(cuadrante * 10 + posicion);
+                diente.setFurcacion(FurcacionPeriodontograma.NINGUNA);
+                for (SitioPeriodontograma sitio : SitioPeriodontograma.values()) {
+                    PeriodontogramaSitio registro = new PeriodontogramaSitio();
+                    registro.setSitio(sitio);
+                    diente.addSitio(registro);
+                }
+                periodontograma.addDiente(diente);
+            }
+        }
+
+        aplicarPeriodontoDemo(periodontograma, paciente.getCelular());
+        periodontogramaRepository.save(periodontograma);
+    }
+
+    private void aplicarPeriodontoDemo(Periodontograma periodontograma, String celularPaciente) {
+        if ("70010001".equals(celularPaciente)) {
+            marcarSitioPeriodontal(periodontograma, 16, SitioPeriodontograma.MESIOVESTIBULAR, 3, true, false);
+            marcarSitioPeriodontal(periodontograma, 36, SitioPeriodontograma.VESTIBULAR, 4, false, true);
+            return;
+        }
+
+        if ("70010002".equals(celularPaciente)) {
+            marcarSitioPeriodontal(periodontograma, 24, SitioPeriodontograma.DISTOVESTIBULAR, 4, true, true);
+            marcarSitioPeriodontal(periodontograma, 25, SitioPeriodontograma.PALATINO, 5, true, false);
+            periodontograma.getDientes().stream()
+                    .filter(diente -> diente.getNumeroFdi() == 46)
+                    .findFirst()
+                    .ifPresent(diente -> {
+                        diente.setAusente(true);
+                        diente.setObservacion("Pieza ausente en control periodontal.");
+                    });
+            return;
+        }
+
+        if ("70010003".equals(celularPaciente)) {
+            marcarSitioPeriodontal(periodontograma, 31, SitioPeriodontograma.VESTIBULAR, 3, true, true);
+            marcarSitioPeriodontal(periodontograma, 41, SitioPeriodontograma.VESTIBULAR, 3, false, true);
+        }
+    }
+
+    private void marcarSitioPeriodontal(
+            Periodontograma periodontograma,
+            int numeroFdi,
+            SitioPeriodontograma sitio,
+            int profundidad,
+            boolean sangrado,
+            boolean placa
+    ) {
+        periodontograma.getDientes().stream()
+                .filter(diente -> diente.getNumeroFdi() == numeroFdi)
+                .findFirst()
+                .flatMap(diente -> diente.getSitios().stream()
+                        .filter(registro -> registro.getSitio() == sitio)
+                        .findFirst())
+                .ifPresent(registro -> {
+                    registro.setProfundidadSondajeMm(profundidad);
+                    registro.setMargenGingivalMm(0);
+                    registro.setSangradoSondaje(sangrado);
+                    registro.setPlaca(placa);
+                });
     }
 
     private void aplicarHallazgosDemo(Odontograma odontograma, String celularPaciente) {

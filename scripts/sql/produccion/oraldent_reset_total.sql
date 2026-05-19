@@ -9,6 +9,7 @@ drop table if exists periodontogramas cascade;
 drop table if exists odontograma_caras cascade;
 drop table if exists odontograma_dientes cascade;
 drop table if exists odontogramas cascade;
+drop table if exists fichas_clinicas cascade;
 drop table if exists citas cascade;
 drop table if exists usuarios cascade;
 drop table if exists horarios cascade;
@@ -106,18 +107,64 @@ create table citas (
     constraint ck_citas_rango check (fecha_hora_inicio < fecha_hora_fin)
 );
 
+create table fichas_clinicas (
+    id bigserial primary key,
+    paciente_id bigint not null,
+    usuario_id bigint,
+    cita_id bigint,
+    fecha timestamp without time zone not null default now(),
+    edad integer,
+    sexo varchar(30),
+    procedencia varchar(120),
+    ocupacion varchar(120),
+    presion_arterial varchar(30),
+    temperatura numeric(4, 1),
+    pulso integer,
+    motivo_consulta varchar(500),
+    enfermedad_actual varchar(1000),
+    anamnesis varchar(1000),
+    hemorragia boolean default false,
+    diabetes boolean default false,
+    hipertension boolean default false,
+    epilepsia boolean default false,
+    problemas_cardiovasculares boolean default false,
+    lipotimias boolean default false,
+    tratamiento_medico_actual boolean default false,
+    alergias varchar(500),
+    medicamento_actual varchar(500),
+    otras_patologias varchar(500),
+    examen_clinico varchar(1200),
+    examen_radiografico varchar(1200),
+    diagnostico varchar(1200),
+    tratamiento varchar(1200),
+    tecnica_anestesia varchar(800),
+    evolucion varchar(1200),
+    activo boolean not null default true,
+    fecha_creacion timestamp without time zone not null default now(),
+    fecha_actualizacion timestamp without time zone not null default now(),
+    constraint fk_fichas_paciente foreign key (paciente_id) references pacientes (id),
+    constraint fk_fichas_usuario foreign key (usuario_id) references usuarios (id),
+    constraint fk_fichas_cita foreign key (cita_id) references citas (id),
+    constraint uk_fichas_cita unique (cita_id),
+    constraint ck_fichas_edad check (edad is null or edad between 0 and 130),
+    constraint ck_fichas_temperatura check (temperatura is null or temperatura between 30.0 and 45.0),
+    constraint ck_fichas_pulso check (pulso is null or pulso between 0 and 260)
+);
+
 create table odontogramas (
     id bigserial primary key,
     paciente_id bigint not null,
     usuario_id bigint,
     cita_id bigint,
+    ficha_clinica_id bigint,
     observaciones varchar(500),
     activo boolean not null default true,
     fecha_creacion timestamp without time zone not null default now(),
     fecha_actualizacion timestamp without time zone not null default now(),
     constraint fk_odontogramas_paciente foreign key (paciente_id) references pacientes (id),
     constraint fk_odontogramas_usuario foreign key (usuario_id) references usuarios (id),
-    constraint fk_odontogramas_cita foreign key (cita_id) references citas (id)
+    constraint fk_odontogramas_cita foreign key (cita_id) references citas (id),
+    constraint fk_odontogramas_ficha foreign key (ficha_clinica_id) references fichas_clinicas (id)
 );
 
 create table odontograma_dientes (
@@ -131,13 +178,11 @@ create table odontograma_dientes (
     corona boolean not null default false,
     endodoncia boolean not null default false,
     extraccion_indicada boolean not null default false,
-    movilidad integer,
     observacion varchar(500),
     constraint fk_odontograma_dientes_odontograma foreign key (odontograma_id) references odontogramas (id) on delete cascade,
     constraint ck_odontograma_dientes_cuadrante check (cuadrante between 1 and 4),
     constraint ck_odontograma_dientes_posicion check (posicion between 1 and 8),
     constraint ck_odontograma_dientes_numero_fdi check (numero_fdi between 11 and 48),
-    constraint ck_odontograma_dientes_movilidad check (movilidad is null or movilidad between 0 and 3),
     constraint uk_odontograma_dientes_fdi unique (odontograma_id, numero_fdi)
 );
 
@@ -162,13 +207,15 @@ create table periodontogramas (
     paciente_id bigint not null,
     usuario_id bigint,
     cita_id bigint,
+    ficha_clinica_id bigint,
     observaciones varchar(500),
     activo boolean not null default true,
     fecha_creacion timestamp without time zone not null default now(),
     fecha_actualizacion timestamp without time zone not null default now(),
     constraint fk_periodontogramas_paciente foreign key (paciente_id) references pacientes (id),
     constraint fk_periodontogramas_usuario foreign key (usuario_id) references usuarios (id),
-    constraint fk_periodontogramas_cita foreign key (cita_id) references citas (id)
+    constraint fk_periodontogramas_cita foreign key (cita_id) references citas (id),
+    constraint fk_periodontogramas_ficha foreign key (ficha_clinica_id) references fichas_clinicas (id)
 );
 
 create table periodontograma_dientes (
@@ -217,16 +264,18 @@ create index idx_citas_usuario_id on citas (usuario_id);
 create index idx_citas_servicio_id on citas (servicio_id);
 create index idx_citas_fecha_hora_inicio on citas (fecha_hora_inicio);
 create index idx_horarios_dia_semana on horarios (dia_semana);
-create unique index uk_odontogramas_paciente_activo on odontogramas (paciente_id) where activo;
+create index idx_fichas_paciente_id on fichas_clinicas (paciente_id);
+create index idx_fichas_cita_id on fichas_clinicas (cita_id);
 create index idx_odontogramas_paciente_id on odontogramas (paciente_id);
 create index idx_odontogramas_usuario_id on odontogramas (usuario_id);
 create index idx_odontogramas_cita_id on odontogramas (cita_id);
+create index idx_odontogramas_ficha_id on odontogramas (ficha_clinica_id);
 create index idx_odontograma_dientes_odontograma_id on odontograma_dientes (odontograma_id);
 create index idx_odontograma_caras_diente_id on odontograma_caras (diente_id);
-create unique index uk_periodontogramas_paciente_activo on periodontogramas (paciente_id) where activo;
 create index idx_periodontogramas_paciente_id on periodontogramas (paciente_id);
 create index idx_periodontogramas_usuario_id on periodontogramas (usuario_id);
 create index idx_periodontogramas_cita_id on periodontogramas (cita_id);
+create index idx_periodontogramas_ficha_id on periodontogramas (ficha_clinica_id);
 create index idx_periodontograma_dientes_periodontograma_id on periodontograma_dientes (periodontograma_id);
 create index idx_periodontograma_sitios_diente_id on periodontograma_sitios (diente_id);
 
@@ -383,23 +432,159 @@ values
         'Control sabatino.'
     );
 
+insert into fichas_clinicas (
+    paciente_id,
+    usuario_id,
+    cita_id,
+    fecha,
+    edad,
+    sexo,
+    procedencia,
+    ocupacion,
+    presion_arterial,
+    temperatura,
+    pulso,
+    motivo_consulta,
+    enfermedad_actual,
+    anamnesis,
+    hemorragia,
+    diabetes,
+    hipertension,
+    epilepsia,
+    problemas_cardiovasculares,
+    lipotimias,
+    tratamiento_medico_actual,
+    alergias,
+    medicamento_actual,
+    otras_patologias,
+    examen_clinico,
+    examen_radiografico,
+    diagnostico,
+    tratamiento,
+    tecnica_anestesia,
+    evolucion,
+    activo
+)
+values
+    (
+        (select id from pacientes where celular = '70010001' limit 1),
+        (select id from usuarios where correo = 'admin@oraldent.com' limit 1),
+        (select id from citas where codigo_gestion = 'ORALA001' limit 1),
+        '2026-04-27 09:00:00',
+        29,
+        'No especificado',
+        'Cochabamba',
+        'Comerciante',
+        '120/80',
+        36.7,
+        78,
+        'Valoracion inicial para implante',
+        'Paciente refiere ausencia de pieza posterior y desea evaluar rehabilitacion con implante.',
+        'Sin antecedentes sistemicos relevantes. Refiere sensibilidad ocasional en sector posterior.',
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        'Niega alergias medicamentosas.',
+        null,
+        'Sin otras patologias referidas.',
+        'Ausencia de pieza posterior y mucosa sin lesiones aparentes.',
+        'Se solicita radiografia panoramica para evaluar disponibilidad osea.',
+        'Edentulismo parcial con indicacion de evaluacion para implante.',
+        'Planificar fase diagnostica para rehabilitacion implantosoportada.',
+        'No aplicada en esta consulta.',
+        'Pendiente de control segun plan de tratamiento.',
+        true
+    ),
+    (
+        (select id from pacientes where celular = '70010002' limit 1),
+        (select id from usuarios where correo = 'admin@oraldent.com' limit 1),
+        (select id from citas where codigo_gestion = 'ORALA002' limit 1),
+        '2026-04-27 15:30:00',
+        33,
+        'No especificado',
+        'Cochabamba',
+        'Estudiante',
+        '115/75',
+        36.7,
+        74,
+        'Radiografia panoramica de control',
+        'Control por molestia al masticar y revision de pieza ausente.',
+        'Paciente refiere tratamiento medico anterior por hipertension controlada.',
+        false,
+        false,
+        true,
+        false,
+        false,
+        false,
+        true,
+        null,
+        'Losartan 50 mg indicado por medico tratante.',
+        'Sin otras patologias referidas.',
+        'Encías con inflamacion leve localizada y control de placa indicado.',
+        'Radiografia de control sin lesiones periapicales evidentes.',
+        'Control odontologico con hallazgos leves.',
+        'Profilaxis, control de higiene y seguimiento.',
+        'No aplicada en esta consulta.',
+        'Pendiente de control segun plan de tratamiento.',
+        true
+    ),
+    (
+        (select id from pacientes where celular = '70010003' limit 1),
+        (select id from usuarios where correo = 'admin@oraldent.com' limit 1),
+        (select id from citas where codigo_gestion = 'ORALA003' limit 1),
+        '2026-04-28 10:00:00',
+        25,
+        'No especificado',
+        'Cochabamba',
+        'Estudiante',
+        '115/75',
+        36.7,
+        74,
+        'Control de ortodoncia',
+        'Ajuste mensual y evaluacion de higiene durante tratamiento ortodontico.',
+        'Paciente sin alergias conocidas. Buen estado general.',
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        null,
+        null,
+        'Sin otras patologias referidas.',
+        'Encías con inflamacion leve localizada y control de placa indicado.',
+        'Radiografia de control sin lesiones periapicales evidentes.',
+        'Control odontologico con hallazgos leves.',
+        'Profilaxis, control de higiene y seguimiento.',
+        'No aplicada en esta consulta.',
+        'Pendiente de control segun plan de tratamiento.',
+        true
+    );
+
 with semillas(celular, codigo_cita, observaciones) as (
     values
         ('70010001', 'ORALA001', 'Odontograma inicial con hallazgos de valoracion.'),
         ('70010002', 'ORALA002', 'Odontograma inicial para apoyo diagnostico.'),
         ('70010003', 'ORALA003', 'Odontograma inicial de control de ortodoncia.')
 )
-insert into odontogramas (paciente_id, usuario_id, cita_id, observaciones, activo)
+insert into odontogramas (paciente_id, usuario_id, cita_id, ficha_clinica_id, observaciones, activo)
 select
     p.id,
     u.id,
     c.id,
+    f.id,
     s.observaciones,
     true
 from semillas s
 join pacientes p on p.celular = s.celular
 left join usuarios u on u.correo = 'admin@oraldent.com'
-left join citas c on c.codigo_gestion = s.codigo_cita;
+left join citas c on c.codigo_gestion = s.codigo_cita
+left join fichas_clinicas f on f.cita_id = c.id;
 
 with posiciones(cuadrante, posicion) as (
     values
@@ -500,17 +685,19 @@ with semillas(celular, codigo_cita, observaciones) as (
         ('70010002', 'ORALA002', 'Periodontograma de valoracion periodontal inicial.'),
         ('70010003', 'ORALA003', 'Periodontograma de seguimiento de control.')
 )
-insert into periodontogramas (paciente_id, usuario_id, cita_id, observaciones, activo)
+insert into periodontogramas (paciente_id, usuario_id, cita_id, ficha_clinica_id, observaciones, activo)
 select
     p.id,
     u.id,
     c.id,
+    f.id,
     s.observaciones,
     true
 from semillas s
 join pacientes p on p.celular = s.celular
 left join usuarios u on u.correo = 'admin@oraldent.com'
-left join citas c on c.codigo_gestion = s.codigo_cita;
+left join citas c on c.codigo_gestion = s.codigo_cita
+left join fichas_clinicas f on f.cita_id = c.id;
 
 with posiciones(cuadrante, posicion) as (
     values

@@ -37,6 +37,10 @@ public class Odontograma {
     @JoinColumn(name = "cita_id")
     private Cita cita;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "ficha_clinica_id")
+    private FichaClinica fichaClinica;
+
     @Column(length = 500)
     private String observaciones;
 
@@ -94,6 +98,14 @@ public class Odontograma {
 
     public void setCita(Cita cita) {
         this.cita = cita;
+    }
+
+    public FichaClinica getFichaClinica() {
+        return fichaClinica;
+    }
+
+    public void setFichaClinica(FichaClinica fichaClinica) {
+        this.fichaClinica = fichaClinica;
     }
 
     public String getObservaciones() {

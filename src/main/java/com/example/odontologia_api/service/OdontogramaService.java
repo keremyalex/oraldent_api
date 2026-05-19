@@ -1,5 +1,6 @@
 package com.example.odontologia_api.service;
 
+import com.example.odontologia_api.dto.OdontogramaBatchRequest;
 import com.example.odontologia_api.dto.OdontogramaCaraRequest;
 import com.example.odontologia_api.dto.OdontogramaCaraResponse;
 import com.example.odontologia_api.dto.OdontogramaDienteRequest;
@@ -7,6 +8,7 @@ import com.example.odontologia_api.dto.OdontogramaDienteResponse;
 import com.example.odontologia_api.dto.OdontogramaObservacionesRequest;
 import com.example.odontologia_api.dto.OdontogramaResponse;
 import com.example.odontologia_api.entity.Cita;
+import com.example.odontologia_api.entity.FichaClinica;
 import com.example.odontologia_api.entity.Odontograma;
 import com.example.odontologia_api.entity.OdontogramaCara;
 import com.example.odontologia_api.entity.OdontogramaDiente;
@@ -30,17 +32,20 @@ public class OdontogramaService {
     private final UsuarioRepository usuarioRepository;
     private final CitaRepository citaRepository;
     private final PacienteService pacienteService;
+    private final FichaClinicaService fichaClinicaService;
 
     public OdontogramaService(
             OdontogramaRepository odontogramaRepository,
             UsuarioRepository usuarioRepository,
             CitaRepository citaRepository,
-            PacienteService pacienteService
+            PacienteService pacienteService,
+            FichaClinicaService fichaClinicaService
     ) {
         this.odontogramaRepository = odontogramaRepository;
         this.usuarioRepository = usuarioRepository;
         this.citaRepository = citaRepository;
         this.pacienteService = pacienteService;
+        this.fichaClinicaService = fichaClinicaService;
     }
 
     @Transactional
@@ -68,6 +73,43 @@ public class OdontogramaService {
     }
 
     @Transactional
+    public OdontogramaResponse obtenerOCrearPorFicha(Long fichaId, Long usuarioId) {
+        FichaClinica ficha = fichaClinicaService.buscarActiva(fichaId);
+        Odontograma odontograma = odontogramaRepository
+                .findFirstByFichaClinicaAndActivoTrueOrderByIdDesc(ficha)
+                .orElseGet(() -> {
+                    Odontograma nuevo = crearBase(
+                            ficha.getPaciente(),
+                            ficha.getUsuario() != null ? ficha.getUsuario() : resolverUsuario(usuarioId),
+                            ficha.getCita()
+                    );
+                    nuevo.setFichaClinica(ficha);
+                    return odontogramaRepository.save(nuevo);
+                });
+        return toResponse(odontograma);
+    }
+
+    @Transactional
+    public OdontogramaResponse crearParaFicha(Long fichaId, Long usuarioId, String observaciones) {
+        FichaClinica ficha = fichaClinicaService.buscarActiva(fichaId);
+        Odontograma anterior = odontogramaRepository
+                .findFirstByFichaClinicaAndActivoTrueOrderByIdDesc(ficha)
+                .orElse(null);
+        if (anterior != null) {
+            anterior.setActivo(false);
+        }
+
+        Odontograma odontograma = crearBase(
+                ficha.getPaciente(),
+                ficha.getUsuario() != null ? ficha.getUsuario() : resolverUsuario(usuarioId),
+                ficha.getCita()
+        );
+        odontograma.setFichaClinica(ficha);
+        odontograma.setObservaciones(observaciones);
+        return toResponse(odontogramaRepository.save(odontograma));
+    }
+
+    @Transactional
     public OdontogramaResponse actualizarObservaciones(Long odontogramaId, OdontogramaObservacionesRequest request) {
         Odontograma odontograma = buscarActivo(odontogramaId);
         odontograma.setObservaciones(request.observaciones());
@@ -87,7 +129,6 @@ public class OdontogramaService {
         diente.setCorona(valor(request.corona(), diente.getCorona()));
         diente.setEndodoncia(valor(request.endodoncia(), diente.getEndodoncia()));
         diente.setExtraccionIndicada(valor(request.extraccionIndicada(), diente.getExtraccionIndicada()));
-        diente.setMovilidad(request.movilidad());
         diente.setObservacion(request.observacion());
         return toResponse(odontogramaRepository.save(odontograma));
     }
@@ -107,6 +148,40 @@ public class OdontogramaService {
                 .orElseThrow(() -> new RecursoNoEncontradoException("Cara del diente no encontrada."));
         cara.setColor(request.color());
         cara.setDescripcion(request.descripcion());
+        return toResponse(odontogramaRepository.save(odontograma));
+    }
+
+    @Transactional
+    public OdontogramaResponse actualizarCompleto(Long odontogramaId, OdontogramaBatchRequest request) {
+        Odontograma odontograma = buscarActivo(odontogramaId);
+        odontograma.setObservaciones(request.observaciones());
+
+        if (request.dientes() != null) {
+            for (var dienteRequest : request.dientes()) {
+                OdontogramaDiente diente = buscarDiente(odontograma, dienteRequest.numeroFdi());
+                diente.setAusente(valor(dienteRequest.ausente(), diente.getAusente()));
+                diente.setImplante(valor(dienteRequest.implante(), diente.getImplante()));
+                diente.setCorona(valor(dienteRequest.corona(), diente.getCorona()));
+                diente.setEndodoncia(valor(dienteRequest.endodoncia(), diente.getEndodoncia()));
+                diente.setExtraccionIndicada(valor(
+                        dienteRequest.extraccionIndicada(),
+                        diente.getExtraccionIndicada()
+                ));
+                diente.setObservacion(dienteRequest.observacion());
+
+                if (dienteRequest.caras() != null) {
+                    for (var caraRequest : dienteRequest.caras()) {
+                        OdontogramaCara cara = diente.getCaras().stream()
+                                .filter(item -> item.getTipo() == caraRequest.tipo())
+                                .findFirst()
+                                .orElseThrow(() -> new RecursoNoEncontradoException("Cara del diente no encontrada."));
+                        cara.setColor(caraRequest.color());
+                        cara.setDescripcion(caraRequest.descripcion());
+                    }
+                }
+            }
+        }
+
         return toResponse(odontogramaRepository.save(odontograma));
     }
 
@@ -179,6 +254,7 @@ public class OdontogramaService {
                 pacienteService.toResponse(odontograma.getPaciente()),
                 odontograma.getUsuario() == null ? null : odontograma.getUsuario().getId(),
                 odontograma.getCita() == null ? null : odontograma.getCita().getId(),
+                odontograma.getFichaClinica() == null ? null : odontograma.getFichaClinica().getId(),
                 odontograma.getObservaciones(),
                 odontograma.getActivo(),
                 odontograma.getFechaCreacion(),
@@ -202,7 +278,6 @@ public class OdontogramaService {
                 diente.getCorona(),
                 diente.getEndodoncia(),
                 diente.getExtraccionIndicada(),
-                diente.getMovilidad(),
                 diente.getObservacion(),
                 caras
         );

@@ -1,5 +1,6 @@
 package com.example.odontologia_api.controller;
 
+import com.example.odontologia_api.dto.OdontogramaBatchRequest;
 import com.example.odontologia_api.dto.OdontogramaCaraRequest;
 import com.example.odontologia_api.dto.OdontogramaDienteRequest;
 import com.example.odontologia_api.dto.OdontogramaObservacionesRequest;
@@ -61,6 +62,32 @@ public class OdontogramaController {
         );
     }
 
+    @GetMapping("/fichas/{fichaId}/odontograma")
+    @Operation(summary = "Obtener o crear el odontograma de una ficha clinica")
+    public OdontogramaResponse obtenerPorFicha(
+            @PathVariable Long fichaId,
+            @AuthenticationPrincipal UsuarioDetails usuarioDetails
+    ) {
+        return odontogramaService.obtenerOCrearPorFicha(
+                fichaId,
+                usuarioDetails != null ? usuarioDetails.getId() : null
+        );
+    }
+
+    @PostMapping("/fichas/{fichaId}/odontogramas")
+    @Operation(summary = "Crear un nuevo odontograma para una ficha clinica")
+    public OdontogramaResponse crearParaFicha(
+            @PathVariable Long fichaId,
+            @RequestParam(required = false) String observaciones,
+            @AuthenticationPrincipal UsuarioDetails usuarioDetails
+    ) {
+        return odontogramaService.crearParaFicha(
+                fichaId,
+                usuarioDetails != null ? usuarioDetails.getId() : null,
+                observaciones
+        );
+    }
+
     @PutMapping("/odontogramas/{odontogramaId}/observaciones")
     @Operation(summary = "Actualizar observaciones generales del odontograma")
     public OdontogramaResponse actualizarObservaciones(
@@ -68,6 +95,15 @@ public class OdontogramaController {
             @Valid @RequestBody OdontogramaObservacionesRequest request
     ) {
         return odontogramaService.actualizarObservaciones(odontogramaId, request);
+    }
+
+    @PutMapping("/odontogramas/{odontogramaId}")
+    @Operation(summary = "Actualizar el odontograma completo")
+    public OdontogramaResponse actualizarCompleto(
+            @PathVariable Long odontogramaId,
+            @Valid @RequestBody OdontogramaBatchRequest request
+    ) {
+        return odontogramaService.actualizarCompleto(odontogramaId, request);
     }
 
     @PutMapping("/odontogramas/{odontogramaId}/dientes/{numeroFdi}")
