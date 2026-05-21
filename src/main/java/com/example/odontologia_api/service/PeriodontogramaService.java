@@ -224,7 +224,7 @@ public class PeriodontogramaService {
     }
 
     private PeriodontogramaSitioResponse toSitioResponse(PeriodontogramaSitio sitio) {
-        int nivelInsercion = sitio.getProfundidadSondajeMm() + sitio.getMargenGingivalMm();
+        int nivelInsercion = sitio.getProfundidadSondajeMm() - sitio.getMargenGingivalMm();
         return new PeriodontogramaSitioResponse(
                 sitio.getId(),
                 sitio.getSitio(),
