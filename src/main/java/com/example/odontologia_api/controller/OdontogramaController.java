@@ -6,12 +6,10 @@ import com.example.odontologia_api.dto.OdontogramaDienteRequest;
 import com.example.odontologia_api.dto.OdontogramaObservacionesRequest;
 import com.example.odontologia_api.dto.OdontogramaResponse;
 import com.example.odontologia_api.enums.TipoCaraOdontograma;
-import com.example.odontologia_api.security.UsuarioDetails;
 import com.example.odontologia_api.service.OdontogramaService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -34,58 +32,19 @@ public class OdontogramaController {
         this.odontogramaService = odontogramaService;
     }
 
-    @GetMapping("/pacientes/{pacienteId}/odontograma")
-    @Operation(summary = "Obtener o crear el odontograma activo de un paciente")
-    public OdontogramaResponse obtenerPorPaciente(
-            @PathVariable Long pacienteId,
-            @AuthenticationPrincipal UsuarioDetails usuarioDetails
-    ) {
-        return odontogramaService.obtenerOCrearPorPaciente(
-                pacienteId,
-                usuarioDetails != null ? usuarioDetails.getId() : null
-        );
-    }
-
-    @PostMapping("/pacientes/{pacienteId}/odontogramas")
-    @Operation(summary = "Crear un nuevo odontograma activo para un paciente")
-    public OdontogramaResponse crear(
-            @PathVariable Long pacienteId,
-            @RequestParam(required = false) Long citaId,
-            @RequestParam(required = false) String observaciones,
-            @AuthenticationPrincipal UsuarioDetails usuarioDetails
-    ) {
-        return odontogramaService.crear(
-                pacienteId,
-                usuarioDetails != null ? usuarioDetails.getId() : null,
-                citaId,
-                observaciones
-        );
-    }
-
     @GetMapping("/fichas/{fichaId}/odontograma")
     @Operation(summary = "Obtener o crear el odontograma de una ficha clinica")
-    public OdontogramaResponse obtenerPorFicha(
-            @PathVariable Long fichaId,
-            @AuthenticationPrincipal UsuarioDetails usuarioDetails
-    ) {
-        return odontogramaService.obtenerOCrearPorFicha(
-                fichaId,
-                usuarioDetails != null ? usuarioDetails.getId() : null
-        );
+    public OdontogramaResponse obtenerPorFicha(@PathVariable Long fichaId) {
+        return odontogramaService.obtenerOCrearPorFicha(fichaId);
     }
 
     @PostMapping("/fichas/{fichaId}/odontogramas")
     @Operation(summary = "Crear un nuevo odontograma para una ficha clinica")
     public OdontogramaResponse crearParaFicha(
             @PathVariable Long fichaId,
-            @RequestParam(required = false) String observaciones,
-            @AuthenticationPrincipal UsuarioDetails usuarioDetails
+            @RequestParam(required = false) String observaciones
     ) {
-        return odontogramaService.crearParaFicha(
-                fichaId,
-                usuarioDetails != null ? usuarioDetails.getId() : null,
-                observaciones
-        );
+        return odontogramaService.crearParaFicha(fichaId, observaciones);
     }
 
     @PutMapping("/odontogramas/{odontogramaId}/observaciones")

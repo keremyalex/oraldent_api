@@ -6,19 +6,14 @@ import com.example.odontologia_api.dto.PeriodontogramaObservacionesRequest;
 import com.example.odontologia_api.dto.PeriodontogramaResponse;
 import com.example.odontologia_api.dto.PeriodontogramaSitioRequest;
 import com.example.odontologia_api.dto.PeriodontogramaSitioResponse;
-import com.example.odontologia_api.entity.Cita;
 import com.example.odontologia_api.entity.FichaClinica;
-import com.example.odontologia_api.entity.Paciente;
 import com.example.odontologia_api.entity.Periodontograma;
 import com.example.odontologia_api.entity.PeriodontogramaDiente;
 import com.example.odontologia_api.entity.PeriodontogramaSitio;
-import com.example.odontologia_api.entity.Usuario;
 import com.example.odontologia_api.enums.FurcacionPeriodontograma;
 import com.example.odontologia_api.enums.SitioPeriodontograma;
 import com.example.odontologia_api.exception.RecursoNoEncontradoException;
-import com.example.odontologia_api.repository.CitaRepository;
 import com.example.odontologia_api.repository.PeriodontogramaRepository;
-import com.example.odontologia_api.repository.UsuarioRepository;
 import java.util.Comparator;
 import java.util.List;
 import org.springframework.stereotype.Service;
@@ -28,68 +23,30 @@ import org.springframework.transaction.annotation.Transactional;
 public class PeriodontogramaService {
 
     private final PeriodontogramaRepository periodontogramaRepository;
-    private final UsuarioRepository usuarioRepository;
-    private final CitaRepository citaRepository;
     private final PacienteService pacienteService;
     private final FichaClinicaService fichaClinicaService;
 
     public PeriodontogramaService(
             PeriodontogramaRepository periodontogramaRepository,
-            UsuarioRepository usuarioRepository,
-            CitaRepository citaRepository,
             PacienteService pacienteService,
             FichaClinicaService fichaClinicaService
     ) {
         this.periodontogramaRepository = periodontogramaRepository;
-        this.usuarioRepository = usuarioRepository;
-        this.citaRepository = citaRepository;
         this.pacienteService = pacienteService;
         this.fichaClinicaService = fichaClinicaService;
     }
 
     @Transactional
-    public PeriodontogramaResponse obtenerOCrearPorPaciente(Long pacienteId, Long usuarioId) {
-        Paciente paciente = pacienteService.buscarActivo(pacienteId);
-        Periodontograma periodontograma = periodontogramaRepository
-                .findFirstByPacienteAndActivoTrueOrderByIdDesc(paciente)
-                .orElseGet(() -> periodontogramaRepository.save(crearBase(paciente, resolverUsuario(usuarioId), null)));
-        return toResponse(periodontograma);
-    }
-
-    @Transactional
-    public PeriodontogramaResponse crear(Long pacienteId, Long usuarioId, Long citaId, String observaciones) {
-        Paciente paciente = pacienteService.buscarActivo(pacienteId);
-        Periodontograma anterior = periodontogramaRepository
-                .findFirstByPacienteAndActivoTrueOrderByIdDesc(paciente)
-                .orElse(null);
-        if (anterior != null) {
-            anterior.setActivo(false);
-        }
-
-        Periodontograma periodontograma = crearBase(paciente, resolverUsuario(usuarioId), resolverCita(citaId));
-        periodontograma.setObservaciones(observaciones);
-        return toResponse(periodontogramaRepository.save(periodontograma));
-    }
-
-    @Transactional
-    public PeriodontogramaResponse obtenerOCrearPorFicha(Long fichaId, Long usuarioId) {
+    public PeriodontogramaResponse obtenerOCrearPorFicha(Long fichaId) {
         FichaClinica ficha = fichaClinicaService.buscarActiva(fichaId);
         Periodontograma periodontograma = periodontogramaRepository
                 .findFirstByFichaClinicaAndActivoTrueOrderByIdDesc(ficha)
-                .orElseGet(() -> {
-                    Periodontograma nuevo = crearBase(
-                            ficha.getPaciente(),
-                            ficha.getUsuario() != null ? ficha.getUsuario() : resolverUsuario(usuarioId),
-                            ficha.getCita()
-                    );
-                    nuevo.setFichaClinica(ficha);
-                    return periodontogramaRepository.save(nuevo);
-                });
+                .orElseGet(() -> periodontogramaRepository.save(crearBase(ficha)));
         return toResponse(periodontograma);
     }
 
     @Transactional
-    public PeriodontogramaResponse crearParaFicha(Long fichaId, Long usuarioId, String observaciones) {
+    public PeriodontogramaResponse crearParaFicha(Long fichaId, String observaciones) {
         FichaClinica ficha = fichaClinicaService.buscarActiva(fichaId);
         Periodontograma anterior = periodontogramaRepository
                 .findFirstByFichaClinicaAndActivoTrueOrderByIdDesc(ficha)
@@ -98,12 +55,7 @@ public class PeriodontogramaService {
             anterior.setActivo(false);
         }
 
-        Periodontograma periodontograma = crearBase(
-                ficha.getPaciente(),
-                ficha.getUsuario() != null ? ficha.getUsuario() : resolverUsuario(usuarioId),
-                ficha.getCita()
-        );
-        periodontograma.setFichaClinica(ficha);
+        Periodontograma periodontograma = crearBase(ficha);
         periodontograma.setObservaciones(observaciones);
         return toResponse(periodontogramaRepository.save(periodontograma));
     }
@@ -178,11 +130,9 @@ public class PeriodontogramaService {
                 .orElseThrow(() -> new RecursoNoEncontradoException("Diente periodontal no encontrado."));
     }
 
-    private Periodontograma crearBase(Paciente paciente, Usuario usuario, Cita cita) {
+    private Periodontograma crearBase(FichaClinica ficha) {
         Periodontograma periodontograma = new Periodontograma();
-        periodontograma.setPaciente(paciente);
-        periodontograma.setUsuario(usuario);
-        periodontograma.setCita(cita);
+        periodontograma.setFichaClinica(ficha);
         periodontograma.setActivo(true);
 
         for (int cuadrante = 1; cuadrante <= 4; cuadrante++) {
@@ -202,22 +152,6 @@ public class PeriodontogramaService {
             }
         }
         return periodontograma;
-    }
-
-    private Usuario resolverUsuario(Long usuarioId) {
-        if (usuarioId == null) {
-            return null;
-        }
-        return usuarioRepository.findById(usuarioId)
-                .orElseThrow(() -> new RecursoNoEncontradoException("Usuario no encontrado."));
-    }
-
-    private Cita resolverCita(Long citaId) {
-        if (citaId == null) {
-            return null;
-        }
-        return citaRepository.findById(citaId)
-                .orElseThrow(() -> new RecursoNoEncontradoException("Cita no encontrada."));
     }
 
     private Boolean valor(Boolean nuevoValor, Boolean valorActual) {
@@ -253,10 +187,10 @@ public class PeriodontogramaService {
                 .toList();
         return new PeriodontogramaResponse(
                 periodontograma.getId(),
-                pacienteService.toResponse(periodontograma.getPaciente()),
-                periodontograma.getUsuario() == null ? null : periodontograma.getUsuario().getId(),
-                periodontograma.getCita() == null ? null : periodontograma.getCita().getId(),
-                periodontograma.getFichaClinica() == null ? null : periodontograma.getFichaClinica().getId(),
+                pacienteService.toResponse(periodontograma.getFichaClinica().getPaciente()),
+                periodontograma.getFichaClinica().getUsuario() == null ? null : periodontograma.getFichaClinica().getUsuario().getId(),
+                periodontograma.getFichaClinica().getCita() == null ? null : periodontograma.getFichaClinica().getCita().getId(),
+                periodontograma.getFichaClinica().getId(),
                 periodontograma.getObservaciones(),
                 periodontograma.getActivo(),
                 periodontograma.getFechaCreacion(),

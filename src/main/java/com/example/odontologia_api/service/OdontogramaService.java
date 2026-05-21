@@ -7,19 +7,14 @@ import com.example.odontologia_api.dto.OdontogramaDienteRequest;
 import com.example.odontologia_api.dto.OdontogramaDienteResponse;
 import com.example.odontologia_api.dto.OdontogramaObservacionesRequest;
 import com.example.odontologia_api.dto.OdontogramaResponse;
-import com.example.odontologia_api.entity.Cita;
 import com.example.odontologia_api.entity.FichaClinica;
 import com.example.odontologia_api.entity.Odontograma;
 import com.example.odontologia_api.entity.OdontogramaCara;
 import com.example.odontologia_api.entity.OdontogramaDiente;
-import com.example.odontologia_api.entity.Paciente;
-import com.example.odontologia_api.entity.Usuario;
 import com.example.odontologia_api.enums.ColorCaraOdontograma;
 import com.example.odontologia_api.enums.TipoCaraOdontograma;
 import com.example.odontologia_api.exception.RecursoNoEncontradoException;
-import com.example.odontologia_api.repository.CitaRepository;
 import com.example.odontologia_api.repository.OdontogramaRepository;
-import com.example.odontologia_api.repository.UsuarioRepository;
 import java.util.Comparator;
 import java.util.List;
 import org.springframework.stereotype.Service;
@@ -29,68 +24,30 @@ import org.springframework.transaction.annotation.Transactional;
 public class OdontogramaService {
 
     private final OdontogramaRepository odontogramaRepository;
-    private final UsuarioRepository usuarioRepository;
-    private final CitaRepository citaRepository;
     private final PacienteService pacienteService;
     private final FichaClinicaService fichaClinicaService;
 
     public OdontogramaService(
             OdontogramaRepository odontogramaRepository,
-            UsuarioRepository usuarioRepository,
-            CitaRepository citaRepository,
             PacienteService pacienteService,
             FichaClinicaService fichaClinicaService
     ) {
         this.odontogramaRepository = odontogramaRepository;
-        this.usuarioRepository = usuarioRepository;
-        this.citaRepository = citaRepository;
         this.pacienteService = pacienteService;
         this.fichaClinicaService = fichaClinicaService;
     }
 
     @Transactional
-    public OdontogramaResponse obtenerOCrearPorPaciente(Long pacienteId, Long usuarioId) {
-        Paciente paciente = pacienteService.buscarActivo(pacienteId);
-        Odontograma odontograma = odontogramaRepository
-                .findFirstByPacienteAndActivoTrueOrderByIdDesc(paciente)
-                .orElseGet(() -> odontogramaRepository.save(crearBase(paciente, resolverUsuario(usuarioId), null)));
-        return toResponse(odontograma);
-    }
-
-    @Transactional
-    public OdontogramaResponse crear(Long pacienteId, Long usuarioId, Long citaId, String observaciones) {
-        Paciente paciente = pacienteService.buscarActivo(pacienteId);
-        Odontograma anterior = odontogramaRepository
-                .findFirstByPacienteAndActivoTrueOrderByIdDesc(paciente)
-                .orElse(null);
-        if (anterior != null) {
-            anterior.setActivo(false);
-        }
-
-        Odontograma odontograma = crearBase(paciente, resolverUsuario(usuarioId), resolverCita(citaId));
-        odontograma.setObservaciones(observaciones);
-        return toResponse(odontogramaRepository.save(odontograma));
-    }
-
-    @Transactional
-    public OdontogramaResponse obtenerOCrearPorFicha(Long fichaId, Long usuarioId) {
+    public OdontogramaResponse obtenerOCrearPorFicha(Long fichaId) {
         FichaClinica ficha = fichaClinicaService.buscarActiva(fichaId);
         Odontograma odontograma = odontogramaRepository
                 .findFirstByFichaClinicaAndActivoTrueOrderByIdDesc(ficha)
-                .orElseGet(() -> {
-                    Odontograma nuevo = crearBase(
-                            ficha.getPaciente(),
-                            ficha.getUsuario() != null ? ficha.getUsuario() : resolverUsuario(usuarioId),
-                            ficha.getCita()
-                    );
-                    nuevo.setFichaClinica(ficha);
-                    return odontogramaRepository.save(nuevo);
-                });
+                .orElseGet(() -> odontogramaRepository.save(crearBase(ficha)));
         return toResponse(odontograma);
     }
 
     @Transactional
-    public OdontogramaResponse crearParaFicha(Long fichaId, Long usuarioId, String observaciones) {
+    public OdontogramaResponse crearParaFicha(Long fichaId, String observaciones) {
         FichaClinica ficha = fichaClinicaService.buscarActiva(fichaId);
         Odontograma anterior = odontogramaRepository
                 .findFirstByFichaClinicaAndActivoTrueOrderByIdDesc(ficha)
@@ -99,12 +56,7 @@ public class OdontogramaService {
             anterior.setActivo(false);
         }
 
-        Odontograma odontograma = crearBase(
-                ficha.getPaciente(),
-                ficha.getUsuario() != null ? ficha.getUsuario() : resolverUsuario(usuarioId),
-                ficha.getCita()
-        );
-        odontograma.setFichaClinica(ficha);
+        Odontograma odontograma = crearBase(ficha);
         odontograma.setObservaciones(observaciones);
         return toResponse(odontogramaRepository.save(odontograma));
     }
@@ -198,11 +150,9 @@ public class OdontogramaService {
                 .orElseThrow(() -> new RecursoNoEncontradoException("Diente no encontrado."));
     }
 
-    private Odontograma crearBase(Paciente paciente, Usuario usuario, Cita cita) {
+    private Odontograma crearBase(FichaClinica ficha) {
         Odontograma odontograma = new Odontograma();
-        odontograma.setPaciente(paciente);
-        odontograma.setUsuario(usuario);
-        odontograma.setCita(cita);
+        odontograma.setFichaClinica(ficha);
         odontograma.setActivo(true);
 
         for (int cuadrante = 1; cuadrante <= 4; cuadrante++) {
@@ -224,22 +174,6 @@ public class OdontogramaService {
         return odontograma;
     }
 
-    private Usuario resolverUsuario(Long usuarioId) {
-        if (usuarioId == null) {
-            return null;
-        }
-        return usuarioRepository.findById(usuarioId)
-                .orElseThrow(() -> new RecursoNoEncontradoException("Usuario no encontrado."));
-    }
-
-    private Cita resolverCita(Long citaId) {
-        if (citaId == null) {
-            return null;
-        }
-        return citaRepository.findById(citaId)
-                .orElseThrow(() -> new RecursoNoEncontradoException("Cita no encontrada."));
-    }
-
     private Boolean valor(Boolean nuevoValor, Boolean valorActual) {
         return nuevoValor == null ? valorActual : nuevoValor;
     }
@@ -251,10 +185,10 @@ public class OdontogramaService {
                 .toList();
         return new OdontogramaResponse(
                 odontograma.getId(),
-                pacienteService.toResponse(odontograma.getPaciente()),
-                odontograma.getUsuario() == null ? null : odontograma.getUsuario().getId(),
-                odontograma.getCita() == null ? null : odontograma.getCita().getId(),
-                odontograma.getFichaClinica() == null ? null : odontograma.getFichaClinica().getId(),
+                pacienteService.toResponse(odontograma.getFichaClinica().getPaciente()),
+                odontograma.getFichaClinica().getUsuario() == null ? null : odontograma.getFichaClinica().getUsuario().getId(),
+                odontograma.getFichaClinica().getCita() == null ? null : odontograma.getFichaClinica().getCita().getId(),
+                odontograma.getFichaClinica().getId(),
                 odontograma.getObservaciones(),
                 odontograma.getActivo(),
                 odontograma.getFechaCreacion(),

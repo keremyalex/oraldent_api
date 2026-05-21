@@ -26,19 +26,7 @@ public class Odontograma {
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "paciente_id", nullable = false)
-    private Paciente paciente;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "usuario_id")
-    private Usuario usuario;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "cita_id")
-    private Cita cita;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "ficha_clinica_id")
+    @JoinColumn(name = "ficha_clinica_id", nullable = false)
     private FichaClinica fichaClinica;
 
     @Column(length = 500)
@@ -74,30 +62,6 @@ public class Odontograma {
 
     public Long getId() {
         return id;
-    }
-
-    public Paciente getPaciente() {
-        return paciente;
-    }
-
-    public void setPaciente(Paciente paciente) {
-        this.paciente = paciente;
-    }
-
-    public Usuario getUsuario() {
-        return usuario;
-    }
-
-    public void setUsuario(Usuario usuario) {
-        this.usuario = usuario;
-    }
-
-    public Cita getCita() {
-        return cita;
-    }
-
-    public void setCita(Cita cita) {
-        this.cita = cita;
     }
 
     public FichaClinica getFichaClinica() {

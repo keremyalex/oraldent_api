@@ -199,12 +199,12 @@ public class DataSeeder implements CommandLineRunner {
                 false
         );
 
-        crearOdontogramaSiNoExiste(ficha1, paciente1, admin, cita1, "Odontograma inicial con hallazgos de valoracion.");
-        crearOdontogramaSiNoExiste(ficha2, paciente2, admin, cita2, "Odontograma inicial para apoyo diagnostico.");
-        crearOdontogramaSiNoExiste(ficha3, paciente3, admin, cita3, "Odontograma inicial de control de ortodoncia.");
-        crearPeriodontogramaSiNoExiste(ficha1, paciente1, admin, cita1, "Registro periodontal inicial sin compromiso severo.");
-        crearPeriodontogramaSiNoExiste(ficha2, paciente2, admin, cita2, "Registro periodontal de control con sangrado localizado.");
-        crearPeriodontogramaSiNoExiste(ficha3, paciente3, admin, cita3, "Registro periodontal para control preventivo.");
+        crearOdontogramaSiNoExiste(ficha1, "Odontograma inicial con hallazgos de valoracion.");
+        crearOdontogramaSiNoExiste(ficha2, "Odontograma inicial para apoyo diagnostico.");
+        crearOdontogramaSiNoExiste(ficha3, "Odontograma inicial de control de ortodoncia.");
+        crearPeriodontogramaSiNoExiste(ficha1, "Registro periodontal inicial sin compromiso severo.");
+        crearPeriodontogramaSiNoExiste(ficha2, "Registro periodontal de control con sangrado localizado.");
+        crearPeriodontogramaSiNoExiste(ficha3, "Registro periodontal para control preventivo.");
         log.info("Seed de demo verificado correctamente.");
     }
 
@@ -436,9 +436,6 @@ public class DataSeeder implements CommandLineRunner {
 
     private void crearOdontogramaSiNoExiste(
             FichaClinica ficha,
-            Paciente paciente,
-            Usuario usuario,
-            Cita cita,
             String observaciones
     ) {
         Optional<Odontograma> porFicha = odontogramaRepository.findFirstByFichaClinicaAndActivoTrueOrderByIdDesc(ficha);
@@ -446,20 +443,7 @@ public class DataSeeder implements CommandLineRunner {
             return;
         }
 
-        Optional<Odontograma> activoPaciente = odontogramaRepository.findFirstByPacienteAndActivoTrueOrderByIdDesc(paciente);
-        if (activoPaciente.isPresent()) {
-            Odontograma odontograma = activoPaciente.get();
-            if (odontograma.getFichaClinica() == null) {
-                odontograma.setFichaClinica(ficha);
-                odontogramaRepository.save(odontograma);
-            }
-            return;
-        }
-
         Odontograma odontograma = new Odontograma();
-        odontograma.setPaciente(paciente);
-        odontograma.setUsuario(usuario);
-        odontograma.setCita(cita);
         odontograma.setFichaClinica(ficha);
         odontograma.setObservaciones(observaciones);
         odontograma.setActivo(true);
@@ -480,15 +464,12 @@ public class DataSeeder implements CommandLineRunner {
             }
         }
 
-        aplicarHallazgosDemo(odontograma, paciente.getCelular());
+        aplicarHallazgosDemo(odontograma, ficha.getPaciente().getCelular());
         odontogramaRepository.save(odontograma);
     }
 
     private void crearPeriodontogramaSiNoExiste(
             FichaClinica ficha,
-            Paciente paciente,
-            Usuario usuario,
-            Cita cita,
             String observaciones
     ) {
         if (periodontogramaRepository.findFirstByFichaClinicaAndActivoTrueOrderByIdDesc(ficha).isPresent()) {
@@ -496,9 +477,6 @@ public class DataSeeder implements CommandLineRunner {
         }
 
         Periodontograma periodontograma = new Periodontograma();
-        periodontograma.setPaciente(paciente);
-        periodontograma.setUsuario(usuario);
-        periodontograma.setCita(cita);
         periodontograma.setFichaClinica(ficha);
         periodontograma.setObservaciones(observaciones);
         periodontograma.setActivo(true);
@@ -520,7 +498,7 @@ public class DataSeeder implements CommandLineRunner {
             }
         }
 
-        aplicarPeriodontoDemo(periodontograma, paciente.getCelular());
+        aplicarPeriodontoDemo(periodontograma, ficha.getPaciente().getCelular());
         periodontogramaRepository.save(periodontograma);
     }
 

@@ -5,12 +5,10 @@ import com.example.odontologia_api.dto.PeriodontogramaObservacionesRequest;
 import com.example.odontologia_api.dto.PeriodontogramaResponse;
 import com.example.odontologia_api.dto.PeriodontogramaSitioRequest;
 import com.example.odontologia_api.enums.SitioPeriodontograma;
-import com.example.odontologia_api.security.UsuarioDetails;
 import com.example.odontologia_api.service.PeriodontogramaService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -33,58 +31,19 @@ public class PeriodontogramaController {
         this.periodontogramaService = periodontogramaService;
     }
 
-    @GetMapping("/pacientes/{pacienteId}/periodontograma")
-    @Operation(summary = "Obtener o crear el periodontograma activo de un paciente")
-    public PeriodontogramaResponse obtenerPorPaciente(
-            @PathVariable Long pacienteId,
-            @AuthenticationPrincipal UsuarioDetails usuarioDetails
-    ) {
-        return periodontogramaService.obtenerOCrearPorPaciente(
-                pacienteId,
-                usuarioDetails != null ? usuarioDetails.getId() : null
-        );
-    }
-
-    @PostMapping("/pacientes/{pacienteId}/periodontogramas")
-    @Operation(summary = "Crear un nuevo periodontograma activo para un paciente")
-    public PeriodontogramaResponse crear(
-            @PathVariable Long pacienteId,
-            @RequestParam(required = false) Long citaId,
-            @RequestParam(required = false) String observaciones,
-            @AuthenticationPrincipal UsuarioDetails usuarioDetails
-    ) {
-        return periodontogramaService.crear(
-                pacienteId,
-                usuarioDetails != null ? usuarioDetails.getId() : null,
-                citaId,
-                observaciones
-        );
-    }
-
     @GetMapping("/fichas/{fichaId}/periodontograma")
     @Operation(summary = "Obtener o crear el periodontograma de una ficha clinica")
-    public PeriodontogramaResponse obtenerPorFicha(
-            @PathVariable Long fichaId,
-            @AuthenticationPrincipal UsuarioDetails usuarioDetails
-    ) {
-        return periodontogramaService.obtenerOCrearPorFicha(
-                fichaId,
-                usuarioDetails != null ? usuarioDetails.getId() : null
-        );
+    public PeriodontogramaResponse obtenerPorFicha(@PathVariable Long fichaId) {
+        return periodontogramaService.obtenerOCrearPorFicha(fichaId);
     }
 
     @PostMapping("/fichas/{fichaId}/periodontogramas")
     @Operation(summary = "Crear un nuevo periodontograma para una ficha clinica")
     public PeriodontogramaResponse crearParaFicha(
             @PathVariable Long fichaId,
-            @RequestParam(required = false) String observaciones,
-            @AuthenticationPrincipal UsuarioDetails usuarioDetails
+            @RequestParam(required = false) String observaciones
     ) {
-        return periodontogramaService.crearParaFicha(
-                fichaId,
-                usuarioDetails != null ? usuarioDetails.getId() : null,
-                observaciones
-        );
+        return periodontogramaService.crearParaFicha(fichaId, observaciones);
     }
 
     @PutMapping("/periodontogramas/{periodontogramaId}/observaciones")

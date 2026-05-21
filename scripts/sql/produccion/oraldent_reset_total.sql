@@ -160,17 +160,11 @@ create table anamnesis (
 
 create table odontogramas (
     id bigserial primary key,
-    paciente_id bigint not null,
-    usuario_id bigint,
-    cita_id bigint,
-    ficha_clinica_id bigint,
+    ficha_clinica_id bigint not null,
     observaciones varchar(500),
     activo boolean not null default true,
     fecha_creacion timestamp without time zone not null default now(),
     fecha_actualizacion timestamp without time zone not null default now(),
-    constraint fk_odontogramas_paciente foreign key (paciente_id) references pacientes (id),
-    constraint fk_odontogramas_usuario foreign key (usuario_id) references usuarios (id),
-    constraint fk_odontogramas_cita foreign key (cita_id) references citas (id),
     constraint fk_odontogramas_ficha foreign key (ficha_clinica_id) references fichas_clinicas (id)
 );
 
@@ -211,17 +205,11 @@ create table odontograma_caras (
 
 create table periodontogramas (
     id bigserial primary key,
-    paciente_id bigint not null,
-    usuario_id bigint,
-    cita_id bigint,
-    ficha_clinica_id bigint,
+    ficha_clinica_id bigint not null,
     observaciones varchar(500),
     activo boolean not null default true,
     fecha_creacion timestamp without time zone not null default now(),
     fecha_actualizacion timestamp without time zone not null default now(),
-    constraint fk_periodontogramas_paciente foreign key (paciente_id) references pacientes (id),
-    constraint fk_periodontogramas_usuario foreign key (usuario_id) references usuarios (id),
-    constraint fk_periodontogramas_cita foreign key (cita_id) references citas (id),
     constraint fk_periodontogramas_ficha foreign key (ficha_clinica_id) references fichas_clinicas (id)
 );
 
@@ -275,15 +263,9 @@ create index idx_citas_fecha_hora_inicio on citas (fecha_hora_inicio);
 create index idx_horarios_dia_semana on horarios (dia_semana);
 create index idx_fichas_paciente_id on fichas_clinicas (paciente_id);
 create index idx_fichas_cita_id on fichas_clinicas (cita_id);
-create index idx_odontogramas_paciente_id on odontogramas (paciente_id);
-create index idx_odontogramas_usuario_id on odontogramas (usuario_id);
-create index idx_odontogramas_cita_id on odontogramas (cita_id);
 create index idx_odontogramas_ficha_id on odontogramas (ficha_clinica_id);
 create index idx_odontograma_dientes_odontograma_id on odontograma_dientes (odontograma_id);
 create index idx_odontograma_caras_diente_id on odontograma_caras (diente_id);
-create index idx_periodontogramas_paciente_id on periodontogramas (paciente_id);
-create index idx_periodontogramas_usuario_id on periodontogramas (usuario_id);
-create index idx_periodontogramas_cita_id on periodontogramas (cita_id);
 create index idx_periodontogramas_ficha_id on periodontogramas (ficha_clinica_id);
 create index idx_periodontograma_dientes_periodontograma_id on periodontograma_dientes (periodontograma_id);
 create index idx_periodontograma_sitios_diente_id on periodontograma_sitios (diente_id);
@@ -625,19 +607,14 @@ with semillas(celular, codigo_cita, observaciones) as (
         ('70010002', 'ORALA002', 'Odontograma inicial para apoyo diagnostico.'),
         ('70010003', 'ORALA003', 'Odontograma inicial de control de ortodoncia.')
 )
-insert into odontogramas (paciente_id, usuario_id, cita_id, ficha_clinica_id, observaciones, activo)
+insert into odontogramas (ficha_clinica_id, observaciones, activo)
 select
-    p.id,
-    u.id,
-    c.id,
     f.id,
     s.observaciones,
     true
 from semillas s
-join pacientes p on p.celular = s.celular
-left join usuarios u on u.correo = 'admin@oraldent.com'
-left join citas c on c.codigo_gestion = s.codigo_cita
-left join fichas_clinicas f on f.cita_id = c.id;
+join citas c on c.codigo_gestion = s.codigo_cita
+join fichas_clinicas f on f.cita_id = c.id;
 
 with posiciones(cuadrante, posicion) as (
     values
@@ -653,7 +630,8 @@ select
     posiciones.cuadrante,
     posiciones.posicion
 from odontogramas o
-join pacientes p on p.id = o.paciente_id
+join fichas_clinicas f on f.id = o.ficha_clinica_id
+join pacientes p on p.id = f.paciente_id
 cross join posiciones
 where p.celular in ('70010001', '70010002', '70010003');
 
@@ -664,7 +642,8 @@ insert into odontograma_caras (diente_id, tipo, color)
 select d.id, tipos.tipo, 'NINGUNO'
 from odontograma_dientes d
 join odontogramas o on o.id = d.odontograma_id
-join pacientes p on p.id = o.paciente_id
+join fichas_clinicas f on f.id = o.ficha_clinica_id
+join pacientes p on p.id = f.paciente_id
 cross join tipos
 where p.celular in ('70010001', '70010002', '70010003');
 
@@ -673,7 +652,8 @@ set color = 'ROJO',
     descripcion = 'Caries proximal pendiente de tratamiento.'
 from odontograma_dientes d
 join odontogramas o on o.id = d.odontograma_id
-join pacientes p on p.id = o.paciente_id
+join fichas_clinicas f on f.id = o.ficha_clinica_id
+join pacientes p on p.id = f.paciente_id
 where c.diente_id = d.id
   and p.celular = '70010001'
   and d.numero_fdi = 16
@@ -684,7 +664,8 @@ set color = 'AZUL',
     descripcion = 'Restauracion existente en buen estado.'
 from odontograma_dientes d
 join odontogramas o on o.id = d.odontograma_id
-join pacientes p on p.id = o.paciente_id
+join fichas_clinicas f on f.id = o.ficha_clinica_id
+join pacientes p on p.id = f.paciente_id
 where c.diente_id = d.id
   and p.celular = '70010001'
   and d.numero_fdi = 36
@@ -694,7 +675,8 @@ update odontograma_dientes d
 set ausente = true,
     observacion = 'Pieza ausente referida por el paciente.'
 from odontogramas o
-join pacientes p on p.id = o.paciente_id
+join fichas_clinicas f on f.id = o.ficha_clinica_id
+join pacientes p on p.id = f.paciente_id
 where d.odontograma_id = o.id
   and p.celular = '70010002'
   and d.numero_fdi = 46;
@@ -704,7 +686,8 @@ set color = 'ROJO',
     descripcion = 'Lesion cariosa a evaluar.'
 from odontograma_dientes d
 join odontogramas o on o.id = d.odontograma_id
-join pacientes p on p.id = o.paciente_id
+join fichas_clinicas f on f.id = o.ficha_clinica_id
+join pacientes p on p.id = f.paciente_id
 where c.diente_id = d.id
   and p.celular = '70010002'
   and d.numero_fdi = 24
@@ -715,7 +698,8 @@ set color = 'AZUL',
     descripcion = 'Sellado/restauracion estetica existente.'
 from odontograma_dientes d
 join odontogramas o on o.id = d.odontograma_id
-join pacientes p on p.id = o.paciente_id
+join fichas_clinicas f on f.id = o.ficha_clinica_id
+join pacientes p on p.id = f.paciente_id
 where c.diente_id = d.id
   and p.celular = '70010003'
   and d.numero_fdi = 11
@@ -726,7 +710,8 @@ set color = 'ROJO',
     descripcion = 'Controlar desgaste incisal.'
 from odontograma_dientes d
 join odontogramas o on o.id = d.odontograma_id
-join pacientes p on p.id = o.paciente_id
+join fichas_clinicas f on f.id = o.ficha_clinica_id
+join pacientes p on p.id = f.paciente_id
 where c.diente_id = d.id
   and p.celular = '70010003'
   and d.numero_fdi = 31
@@ -738,19 +723,14 @@ with semillas(celular, codigo_cita, observaciones) as (
         ('70010002', 'ORALA002', 'Periodontograma de valoracion periodontal inicial.'),
         ('70010003', 'ORALA003', 'Periodontograma de seguimiento de control.')
 )
-insert into periodontogramas (paciente_id, usuario_id, cita_id, ficha_clinica_id, observaciones, activo)
+insert into periodontogramas (ficha_clinica_id, observaciones, activo)
 select
-    p.id,
-    u.id,
-    c.id,
     f.id,
     s.observaciones,
     true
 from semillas s
-join pacientes p on p.celular = s.celular
-left join usuarios u on u.correo = 'admin@oraldent.com'
-left join citas c on c.codigo_gestion = s.codigo_cita
-left join fichas_clinicas f on f.cita_id = c.id;
+join citas c on c.codigo_gestion = s.codigo_cita
+join fichas_clinicas f on f.cita_id = c.id;
 
 with posiciones(cuadrante, posicion) as (
     values
@@ -766,7 +746,8 @@ select
     posiciones.cuadrante,
     posiciones.posicion
 from periodontogramas p
-join pacientes pa on pa.id = p.paciente_id
+join fichas_clinicas f on f.id = p.ficha_clinica_id
+join pacientes pa on pa.id = f.paciente_id
 cross join posiciones
 where pa.celular in ('70010001', '70010002', '70010003');
 
@@ -783,7 +764,8 @@ insert into periodontograma_sitios (diente_id, sitio)
 select d.id, sitios.sitio
 from periodontograma_dientes d
 join periodontogramas p on p.id = d.periodontograma_id
-join pacientes pa on pa.id = p.paciente_id
+join fichas_clinicas f on f.id = p.ficha_clinica_id
+join pacientes pa on pa.id = f.paciente_id
 cross join sitios
 where pa.celular in ('70010001', '70010002', '70010003');
 
@@ -792,7 +774,8 @@ set movilidad = 1,
     furcacion_vestibular = 'GRADO_I',
     observacion = 'Molestia localizada en control periodontal.'
 from periodontogramas p
-join pacientes pa on pa.id = p.paciente_id
+join fichas_clinicas f on f.id = p.ficha_clinica_id
+join pacientes pa on pa.id = f.paciente_id
 where d.periodontograma_id = p.id
   and pa.celular = '70010001'
   and d.numero_fdi = 16;
@@ -806,7 +789,8 @@ update periodontograma_dientes d
 set implante = true,
     observacion = 'Implante en seguimiento periodontal.'
 from periodontogramas p
-join pacientes pa on pa.id = p.paciente_id
+join fichas_clinicas f on f.id = p.ficha_clinica_id
+join pacientes pa on pa.id = f.paciente_id
 where d.periodontograma_id = p.id
   and pa.celular = '70010002'
   and d.numero_fdi = 46;
@@ -819,7 +803,8 @@ set sangrado_sondaje = true,
     observacion = 'Sangrado positivo y bolsa periodontal localizada.'
 from periodontograma_dientes d
 join periodontogramas p on p.id = d.periodontograma_id
-join pacientes pa on pa.id = p.paciente_id
+join fichas_clinicas f on f.id = p.ficha_clinica_id
+join pacientes pa on pa.id = f.paciente_id
 where s.diente_id = d.id
   and pa.celular = '70010001'
   and d.numero_fdi = 16
@@ -832,7 +817,8 @@ set supuracion = true,
     observacion = 'Supuracion al sondaje en control.'
 from periodontograma_dientes d
 join periodontogramas p on p.id = d.periodontograma_id
-join pacientes pa on pa.id = p.paciente_id
+join fichas_clinicas f on f.id = p.ficha_clinica_id
+join pacientes pa on pa.id = f.paciente_id
 where s.diente_id = d.id
   and pa.celular = '70010003'
   and d.numero_fdi = 36
