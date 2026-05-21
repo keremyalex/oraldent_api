@@ -2,6 +2,9 @@ package com.example.odontologia_api.service;
 
 import com.example.odontologia_api.dto.FichaClinicaRequest;
 import com.example.odontologia_api.dto.FichaClinicaResponse;
+import com.example.odontologia_api.dto.AnamnesisRequest;
+import com.example.odontologia_api.dto.AnamnesisResponse;
+import com.example.odontologia_api.entity.Anamnesis;
 import com.example.odontologia_api.entity.Cita;
 import com.example.odontologia_api.entity.FichaClinica;
 import com.example.odontologia_api.entity.Odontograma;
@@ -66,6 +69,7 @@ public class FichaClinicaService {
         ficha.setPaciente(paciente);
         ficha.setUsuario(resolverUsuario(usuarioId));
         aplicarDatos(ficha, request);
+        aplicarAnamnesisNueva(ficha, paciente, request.anamnesis());
         return toResponse(fichaClinicaRepository.save(ficha));
     }
 
@@ -104,17 +108,9 @@ public class FichaClinicaService {
         ficha.setPulso(request.pulso());
         ficha.setMotivoConsulta(normalizar(request.motivoConsulta()));
         ficha.setEnfermedadActual(normalizar(request.enfermedadActual()));
-        ficha.setAnamnesis(normalizar(request.anamnesis()));
-        ficha.setHemorragia(valor(request.hemorragia()));
-        ficha.setDiabetes(valor(request.diabetes()));
-        ficha.setHipertension(valor(request.hipertension()));
-        ficha.setEpilepsia(valor(request.epilepsia()));
-        ficha.setProblemasCardiovasculares(valor(request.problemasCardiovasculares()));
-        ficha.setLipotimias(valor(request.lipotimias()));
-        ficha.setTratamientoMedicoActual(valor(request.tratamientoMedicoActual()));
-        ficha.setAlergias(normalizar(request.alergias()));
-        ficha.setMedicamentoActual(normalizar(request.medicamentoActual()));
-        ficha.setOtrasPatologias(normalizar(request.otrasPatologias()));
+        if (request.anamnesis() != null) {
+            aplicarAnamnesis(obtenerOCrearAnamnesis(ficha), request.anamnesis());
+        }
         ficha.setExamenClinico(normalizar(request.examenClinico()));
         ficha.setExamenRadiografico(normalizar(request.examenRadiografico()));
         ficha.setDiagnostico(normalizar(request.diagnostico()));
@@ -154,6 +150,77 @@ public class FichaClinicaService {
         return Boolean.TRUE.equals(value);
     }
 
+    private void aplicarAnamnesisNueva(FichaClinica ficha, Paciente paciente, AnamnesisRequest request) {
+        Anamnesis anamnesis = new Anamnesis();
+        copiarAnamnesisAnterior(anamnesis, paciente);
+        if (request != null) {
+            aplicarAnamnesis(anamnesis, request);
+        }
+        ficha.setAnamnesis(anamnesis);
+    }
+
+    private Anamnesis obtenerOCrearAnamnesis(FichaClinica ficha) {
+        if (ficha.getAnamnesis() != null) {
+            return ficha.getAnamnesis();
+        }
+        Anamnesis anamnesis = new Anamnesis();
+        ficha.setAnamnesis(anamnesis);
+        return anamnesis;
+    }
+
+    private void copiarAnamnesisAnterior(Anamnesis destino, Paciente paciente) {
+        fichaClinicaRepository.findByPacienteAndActivoTrueOrderByFechaDescIdDesc(paciente).stream()
+                .map(FichaClinica::getAnamnesis)
+                .filter(anamnesis -> anamnesis != null)
+                .findFirst()
+                .ifPresent(origen -> {
+                    destino.setHemorragia(origen.getHemorragia());
+                    destino.setDiabetes(origen.getDiabetes());
+                    destino.setHipertension(origen.getHipertension());
+                    destino.setEpilepsia(origen.getEpilepsia());
+                    destino.setProblemasCardiovasculares(origen.getProblemasCardiovasculares());
+                    destino.setLipotimias(origen.getLipotimias());
+                    destino.setTratamientoMedicoActual(origen.getTratamientoMedicoActual());
+                    destino.setAlergias(origen.getAlergias());
+                    destino.setMedicamentoActual(origen.getMedicamentoActual());
+                    destino.setOtrasPatologias(origen.getOtrasPatologias());
+                });
+    }
+
+    private void aplicarAnamnesis(Anamnesis anamnesis, AnamnesisRequest request) {
+        anamnesis.setDescripcion(normalizar(request.descripcion()));
+        anamnesis.setHemorragia(valor(request.hemorragia()));
+        anamnesis.setDiabetes(valor(request.diabetes()));
+        anamnesis.setHipertension(valor(request.hipertension()));
+        anamnesis.setEpilepsia(valor(request.epilepsia()));
+        anamnesis.setProblemasCardiovasculares(valor(request.problemasCardiovasculares()));
+        anamnesis.setLipotimias(valor(request.lipotimias()));
+        anamnesis.setTratamientoMedicoActual(valor(request.tratamientoMedicoActual()));
+        anamnesis.setAlergias(normalizar(request.alergias()));
+        anamnesis.setMedicamentoActual(normalizar(request.medicamentoActual()));
+        anamnesis.setOtrasPatologias(normalizar(request.otrasPatologias()));
+    }
+
+    private AnamnesisResponse toAnamnesisResponse(Anamnesis anamnesis) {
+        if (anamnesis == null) {
+            return null;
+        }
+        return new AnamnesisResponse(
+                anamnesis.getId(),
+                anamnesis.getDescripcion(),
+                anamnesis.getHemorragia(),
+                anamnesis.getDiabetes(),
+                anamnesis.getHipertension(),
+                anamnesis.getEpilepsia(),
+                anamnesis.getProblemasCardiovasculares(),
+                anamnesis.getLipotimias(),
+                anamnesis.getTratamientoMedicoActual(),
+                anamnesis.getAlergias(),
+                anamnesis.getMedicamentoActual(),
+                anamnesis.getOtrasPatologias()
+        );
+    }
+
     private FichaClinicaResponse toResponse(FichaClinica ficha) {
         Long odontogramaId = odontogramaRepository
                 .findFirstByFichaClinicaAndActivoTrueOrderByIdDesc(ficha)
@@ -179,17 +246,7 @@ public class FichaClinicaService {
                 ficha.getPulso(),
                 ficha.getMotivoConsulta(),
                 ficha.getEnfermedadActual(),
-                ficha.getAnamnesis(),
-                ficha.getHemorragia(),
-                ficha.getDiabetes(),
-                ficha.getHipertension(),
-                ficha.getEpilepsia(),
-                ficha.getProblemasCardiovasculares(),
-                ficha.getLipotimias(),
-                ficha.getTratamientoMedicoActual(),
-                ficha.getAlergias(),
-                ficha.getMedicamentoActual(),
-                ficha.getOtrasPatologias(),
+                toAnamnesisResponse(ficha.getAnamnesis()),
                 ficha.getExamenClinico(),
                 ficha.getExamenRadiografico(),
                 ficha.getDiagnostico(),

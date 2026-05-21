@@ -48,7 +48,11 @@ public class PeriodontogramaDiente {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
-    private FurcacionPeriodontograma furcacion = FurcacionPeriodontograma.NINGUNA;
+    private FurcacionPeriodontograma furcacionVestibular = FurcacionPeriodontograma.NINGUNA;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    private FurcacionPeriodontograma furcacionPalatinaLingual = FurcacionPeriodontograma.NINGUNA;
 
     @Column(length = 500)
     private String observacion;
@@ -76,8 +80,10 @@ public class PeriodontogramaDiente {
     public void setImplante(Boolean implante) { this.implante = implante; }
     public Integer getMovilidad() { return movilidad; }
     public void setMovilidad(Integer movilidad) { this.movilidad = movilidad; }
-    public FurcacionPeriodontograma getFurcacion() { return furcacion; }
-    public void setFurcacion(FurcacionPeriodontograma furcacion) { this.furcacion = furcacion; }
+    public FurcacionPeriodontograma getFurcacionVestibular() { return furcacionVestibular; }
+    public void setFurcacionVestibular(FurcacionPeriodontograma furcacionVestibular) { this.furcacionVestibular = furcacionVestibular; }
+    public FurcacionPeriodontograma getFurcacionPalatinaLingual() { return furcacionPalatinaLingual; }
+    public void setFurcacionPalatinaLingual(FurcacionPeriodontograma furcacionPalatinaLingual) { this.furcacionPalatinaLingual = furcacionPalatinaLingual; }
     public String getObservacion() { return observacion; }
     public void setObservacion(String observacion) { this.observacion = observacion; }
     public List<PeriodontogramaSitio> getSitios() { return sitios; }

@@ -6,6 +6,7 @@ import com.example.odontologia_api.entity.HorarioAtencion;
 import com.example.odontologia_api.entity.Odontograma;
 import com.example.odontologia_api.entity.OdontogramaCara;
 import com.example.odontologia_api.entity.OdontogramaDiente;
+import com.example.odontologia_api.entity.Anamnesis;
 import com.example.odontologia_api.entity.Paciente;
 import com.example.odontologia_api.entity.Periodontograma;
 import com.example.odontologia_api.entity.PeriodontogramaDiente;
@@ -395,17 +396,19 @@ public class DataSeeder implements CommandLineRunner {
         ficha.setPulso(implantologia ? 78 : 74);
         ficha.setMotivoConsulta(motivoConsulta);
         ficha.setEnfermedadActual(enfermedadActual);
-        ficha.setAnamnesis(anamnesis);
-        ficha.setHemorragia(false);
-        ficha.setDiabetes(false);
-        ficha.setHipertension(!implantologia && "70010002".equals(paciente.getCelular()));
-        ficha.setEpilepsia(false);
-        ficha.setProblemasCardiovasculares(false);
-        ficha.setLipotimias(false);
-        ficha.setTratamientoMedicoActual("70010002".equals(paciente.getCelular()));
-        ficha.setAlergias("70010001".equals(paciente.getCelular()) ? "Niega alergias medicamentosas." : null);
-        ficha.setMedicamentoActual("70010002".equals(paciente.getCelular()) ? "Losartan 50 mg indicado por medico tratante." : null);
-        ficha.setOtrasPatologias("Sin otras patologias referidas.");
+        Anamnesis datosAnamnesis = new Anamnesis();
+        datosAnamnesis.setDescripcion(anamnesis);
+        datosAnamnesis.setHemorragia(false);
+        datosAnamnesis.setDiabetes(false);
+        datosAnamnesis.setHipertension(!implantologia && "70010002".equals(paciente.getCelular()));
+        datosAnamnesis.setEpilepsia(false);
+        datosAnamnesis.setProblemasCardiovasculares(false);
+        datosAnamnesis.setLipotimias(false);
+        datosAnamnesis.setTratamientoMedicoActual("70010002".equals(paciente.getCelular()));
+        datosAnamnesis.setAlergias("70010001".equals(paciente.getCelular()) ? "Niega alergias medicamentosas." : null);
+        datosAnamnesis.setMedicamentoActual("70010002".equals(paciente.getCelular()) ? "Losartan 50 mg indicado por medico tratante." : null);
+        datosAnamnesis.setOtrasPatologias("Sin otras patologias referidas.");
+        ficha.setAnamnesis(datosAnamnesis);
         ficha.setExamenClinico(implantologia
                 ? "Ausencia de pieza posterior y mucosa sin lesiones aparentes."
                 : "Encías con inflamacion leve localizada y control de placa indicado.");
@@ -506,7 +509,8 @@ public class DataSeeder implements CommandLineRunner {
                 diente.setCuadrante(cuadrante);
                 diente.setPosicion(posicion);
                 diente.setNumeroFdi(cuadrante * 10 + posicion);
-                diente.setFurcacion(FurcacionPeriodontograma.NINGUNA);
+                diente.setFurcacionVestibular(FurcacionPeriodontograma.NINGUNA);
+                diente.setFurcacionPalatinaLingual(FurcacionPeriodontograma.NINGUNA);
                 for (SitioPeriodontograma sitio : SitioPeriodontograma.values()) {
                     PeriodontogramaSitio registro = new PeriodontogramaSitio();
                     registro.setSitio(sitio);

@@ -109,17 +109,6 @@ create table if not exists fichas_clinicas (
     pulso integer,
     motivo_consulta varchar(500),
     enfermedad_actual varchar(1000),
-    anamnesis varchar(1000),
-    hemorragia boolean default false,
-    diabetes boolean default false,
-    hipertension boolean default false,
-    epilepsia boolean default false,
-    problemas_cardiovasculares boolean default false,
-    lipotimias boolean default false,
-    tratamiento_medico_actual boolean default false,
-    alergias varchar(500),
-    medicamento_actual varchar(500),
-    otras_patologias varchar(500),
     examen_clinico varchar(1200),
     examen_radiografico varchar(1200),
     diagnostico varchar(1200),
@@ -137,6 +126,77 @@ create table if not exists fichas_clinicas (
     constraint ck_fichas_temperatura check (temperatura is null or temperatura between 30.0 and 45.0),
     constraint ck_fichas_pulso check (pulso is null or pulso between 0 and 260)
 );
+
+create table if not exists anamnesis (
+    id bigserial primary key,
+    ficha_clinica_id bigint not null unique,
+    descripcion varchar(1000),
+    hemorragia boolean default false,
+    diabetes boolean default false,
+    hipertension boolean default false,
+    epilepsia boolean default false,
+    problemas_cardiovasculares boolean default false,
+    lipotimias boolean default false,
+    tratamiento_medico_actual boolean default false,
+    alergias varchar(500),
+    medicamento_actual varchar(500),
+    otras_patologias varchar(500),
+    constraint fk_anamnesis_ficha foreign key (ficha_clinica_id) references fichas_clinicas (id) on delete cascade
+);
+
+do $$
+begin
+    if exists (
+        select 1
+        from information_schema.columns
+        where table_name = 'fichas_clinicas'
+          and column_name = 'anamnesis'
+    ) then
+        insert into anamnesis (
+            ficha_clinica_id,
+            descripcion,
+            hemorragia,
+            diabetes,
+            hipertension,
+            epilepsia,
+            problemas_cardiovasculares,
+            lipotimias,
+            tratamiento_medico_actual,
+            alergias,
+            medicamento_actual,
+            otras_patologias
+        )
+        select
+            f.id,
+            f.anamnesis,
+            f.hemorragia,
+            f.diabetes,
+            f.hipertension,
+            f.epilepsia,
+            f.problemas_cardiovasculares,
+            f.lipotimias,
+            f.tratamiento_medico_actual,
+            f.alergias,
+            f.medicamento_actual,
+            f.otras_patologias
+        from fichas_clinicas f
+        where not exists (
+            select 1 from anamnesis a where a.ficha_clinica_id = f.id
+        );
+    end if;
+end $$;
+
+alter table fichas_clinicas drop column if exists anamnesis;
+alter table fichas_clinicas drop column if exists hemorragia;
+alter table fichas_clinicas drop column if exists diabetes;
+alter table fichas_clinicas drop column if exists hipertension;
+alter table fichas_clinicas drop column if exists epilepsia;
+alter table fichas_clinicas drop column if exists problemas_cardiovasculares;
+alter table fichas_clinicas drop column if exists lipotimias;
+alter table fichas_clinicas drop column if exists tratamiento_medico_actual;
+alter table fichas_clinicas drop column if exists alergias;
+alter table fichas_clinicas drop column if exists medicamento_actual;
+alter table fichas_clinicas drop column if exists otras_patologias;
 
 create table if not exists odontogramas (
     id bigserial primary key,
@@ -217,14 +277,16 @@ create table if not exists periodontograma_dientes (
     ausente boolean not null default false,
     implante boolean not null default false,
     movilidad integer,
-    furcacion varchar(20) not null default 'NINGUNA',
+    furcacion_vestibular varchar(20) not null default 'NINGUNA',
+    furcacion_palatina_lingual varchar(20) not null default 'NINGUNA',
     observacion varchar(500),
     constraint fk_periodontograma_dientes_periodontograma foreign key (periodontograma_id) references periodontogramas (id) on delete cascade,
     constraint ck_periodontograma_dientes_cuadrante check (cuadrante between 1 and 4),
     constraint ck_periodontograma_dientes_posicion check (posicion between 1 and 8),
     constraint ck_periodontograma_dientes_numero_fdi check (numero_fdi between 11 and 48),
     constraint ck_periodontograma_dientes_movilidad check (movilidad is null or movilidad between 0 and 3),
-    constraint ck_periodontograma_dientes_furcacion check (furcacion in ('NINGUNA', 'GRADO_I', 'GRADO_II', 'GRADO_III')),
+    constraint ck_periodontograma_dientes_furcacion_vestibular check (furcacion_vestibular in ('NINGUNA', 'GRADO_I', 'GRADO_II', 'GRADO_III')),
+    constraint ck_periodontograma_dientes_furcacion_palatina_lingual check (furcacion_palatina_lingual in ('NINGUNA', 'GRADO_I', 'GRADO_II', 'GRADO_III')),
     constraint uk_periodontograma_dientes_fdi unique (periodontograma_id, numero_fdi)
 );
 
@@ -246,6 +308,45 @@ create table if not exists periodontograma_sitios (
     constraint ck_periodontograma_sitios_profundidad check (profundidad_sondaje_mm between 0 and 20),
     constraint uk_periodontograma_sitios_tipo unique (diente_id, sitio)
 );
+
+alter table periodontograma_dientes
+    add column if not exists furcacion_vestibular varchar(20) not null default 'NINGUNA';
+alter table periodontograma_dientes
+    add column if not exists furcacion_palatina_lingual varchar(20) not null default 'NINGUNA';
+
+do $$
+begin
+    if exists (
+        select 1
+        from information_schema.columns
+        where table_name = 'periodontograma_dientes'
+          and column_name = 'furcacion'
+    ) then
+        update periodontograma_dientes
+        set furcacion_vestibular = furcacion
+        where furcacion_vestibular = 'NINGUNA'
+          and furcacion is not null;
+    end if;
+
+    alter table periodontograma_dientes drop constraint if exists ck_periodontograma_dientes_furcacion;
+    alter table periodontograma_dientes drop column if exists furcacion;
+
+    if not exists (
+        select 1 from pg_constraint where conname = 'ck_periodontograma_dientes_furcacion_vestibular'
+    ) then
+        alter table periodontograma_dientes
+        add constraint ck_periodontograma_dientes_furcacion_vestibular
+        check (furcacion_vestibular in ('NINGUNA', 'GRADO_I', 'GRADO_II', 'GRADO_III'));
+    end if;
+
+    if not exists (
+        select 1 from pg_constraint where conname = 'ck_periodontograma_dientes_furcacion_palatina_lingual'
+    ) then
+        alter table periodontograma_dientes
+        add constraint ck_periodontograma_dientes_furcacion_palatina_lingual
+        check (furcacion_palatina_lingual in ('NINGUNA', 'GRADO_I', 'GRADO_II', 'GRADO_III'));
+    end if;
+end $$;
 
 alter table odontogramas add column if not exists ficha_clinica_id bigint;
 alter table periodontogramas add column if not exists ficha_clinica_id bigint;
@@ -290,6 +391,7 @@ create index if not exists idx_periodontograma_dientes_periodontograma_id on per
 create index if not exists idx_periodontograma_sitios_diente_id on periodontograma_sitios (diente_id);
 create index if not exists idx_fichas_paciente_id on fichas_clinicas (paciente_id);
 create index if not exists idx_fichas_cita_id on fichas_clinicas (cita_id);
+create index if not exists idx_anamnesis_ficha_id on anamnesis (ficha_clinica_id);
 
 drop index if exists uk_odontogramas_paciente_activo;
 drop index if exists uk_periodontogramas_paciente_activo;
@@ -541,17 +643,6 @@ insert into fichas_clinicas (
     pulso,
     motivo_consulta,
     enfermedad_actual,
-    anamnesis,
-    hemorragia,
-    diabetes,
-    hipertension,
-    epilepsia,
-    problemas_cardiovasculares,
-    lipotimias,
-    tratamiento_medico_actual,
-    alergias,
-    medicamento_actual,
-    otras_patologias,
     examen_clinico,
     examen_radiografico,
     diagnostico,
@@ -575,17 +666,6 @@ values
         78,
         'Valoracion inicial para implante',
         'Paciente refiere ausencia de pieza posterior y desea evaluar rehabilitacion con implante.',
-        'Sin antecedentes sistemicos relevantes. Refiere sensibilidad ocasional en sector posterior.',
-        false,
-        false,
-        false,
-        false,
-        false,
-        false,
-        false,
-        'Niega alergias medicamentosas.',
-        null,
-        'Sin otras patologias referidas.',
         'Ausencia de pieza posterior y mucosa sin lesiones aparentes.',
         'Se solicita radiografia panoramica para evaluar disponibilidad osea.',
         'Edentulismo parcial con indicacion de evaluacion para implante.',
@@ -608,17 +688,6 @@ values
         74,
         'Radiografia panoramica de control',
         'Control por molestia al masticar y revision de pieza ausente.',
-        'Paciente refiere tratamiento medico anterior por hipertension controlada.',
-        false,
-        false,
-        true,
-        false,
-        false,
-        false,
-        true,
-        null,
-        'Losartan 50 mg indicado por medico tratante.',
-        'Sin otras patologias referidas.',
         'Encías con inflamacion leve localizada y control de placa indicado.',
         'Radiografia de control sin lesiones periapicales evidentes.',
         'Control odontologico con hallazgos leves.',
@@ -641,17 +710,6 @@ values
         74,
         'Control de ortodoncia',
         'Ajuste mensual y evaluacion de higiene durante tratamiento ortodontico.',
-        'Paciente sin alergias conocidas. Buen estado general.',
-        false,
-        false,
-        false,
-        false,
-        false,
-        false,
-        false,
-        null,
-        null,
-        'Sin otras patologias referidas.',
         'Encías con inflamacion leve localizada y control de placa indicado.',
         'Radiografia de control sin lesiones periapicales evidentes.',
         'Control odontologico con hallazgos leves.',
@@ -671,7 +729,104 @@ set fecha = excluded.fecha,
     pulso = excluded.pulso,
     motivo_consulta = excluded.motivo_consulta,
     enfermedad_actual = excluded.enfermedad_actual,
-    anamnesis = excluded.anamnesis,
+    examen_clinico = excluded.examen_clinico,
+    examen_radiografico = excluded.examen_radiografico,
+    diagnostico = excluded.diagnostico,
+    tratamiento = excluded.tratamiento,
+    tecnica_anestesia = excluded.tecnica_anestesia,
+    evolucion = excluded.evolucion,
+    activo = true,
+    fecha_actualizacion = now();
+
+insert into anamnesis (
+    ficha_clinica_id,
+    descripcion,
+    hemorragia,
+    diabetes,
+    hipertension,
+    epilepsia,
+    problemas_cardiovasculares,
+    lipotimias,
+    tratamiento_medico_actual,
+    alergias,
+    medicamento_actual,
+    otras_patologias
+)
+select
+    f.id,
+    s.descripcion,
+    s.hemorragia,
+    s.diabetes,
+    s.hipertension,
+    s.epilepsia,
+    s.problemas_cardiovasculares,
+    s.lipotimias,
+    s.tratamiento_medico_actual,
+    s.alergias,
+    s.medicamento_actual,
+    s.otras_patologias
+from (
+    values
+        (
+            'ORALA001',
+            'Sin antecedentes sistemicos relevantes. Refiere sensibilidad ocasional en sector posterior.',
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            'Niega alergias medicamentosas.',
+            null,
+            'Sin otras patologias referidas.'
+        ),
+        (
+            'ORALA002',
+            'Paciente refiere tratamiento medico anterior por hipertension controlada.',
+            false,
+            false,
+            true,
+            false,
+            false,
+            false,
+            true,
+            null,
+            'Losartan 50 mg indicado por medico tratante.',
+            'Sin otras patologias referidas.'
+        ),
+        (
+            'ORALA003',
+            'Paciente sin alergias conocidas. Buen estado general.',
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            null,
+            null,
+            'Sin otras patologias referidas.'
+        )
+) as s(
+    codigo_cita,
+    descripcion,
+    hemorragia,
+    diabetes,
+    hipertension,
+    epilepsia,
+    problemas_cardiovasculares,
+    lipotimias,
+    tratamiento_medico_actual,
+    alergias,
+    medicamento_actual,
+    otras_patologias
+)
+join citas c on c.codigo_gestion = s.codigo_cita
+join fichas_clinicas f on f.cita_id = c.id
+on conflict (ficha_clinica_id) do update
+set descripcion = excluded.descripcion,
     hemorragia = excluded.hemorragia,
     diabetes = excluded.diabetes,
     hipertension = excluded.hipertension,
@@ -681,15 +836,7 @@ set fecha = excluded.fecha,
     tratamiento_medico_actual = excluded.tratamiento_medico_actual,
     alergias = excluded.alergias,
     medicamento_actual = excluded.medicamento_actual,
-    otras_patologias = excluded.otras_patologias,
-    examen_clinico = excluded.examen_clinico,
-    examen_radiografico = excluded.examen_radiografico,
-    diagnostico = excluded.diagnostico,
-    tratamiento = excluded.tratamiento,
-    tecnica_anestesia = excluded.tecnica_anestesia,
-    evolucion = excluded.evolucion,
-    activo = true,
-    fecha_actualizacion = now();
+    otras_patologias = excluded.otras_patologias;
 
 with semillas(celular, codigo_cita, observaciones) as (
     values
@@ -897,13 +1044,18 @@ where p.celular in ('70010001', '70010002', '70010003')
 
 update periodontograma_dientes d
 set movilidad = 1,
-    furcacion = 'GRADO_I',
+    furcacion_vestibular = 'GRADO_I',
     observacion = 'Molestia localizada en control periodontal.'
 from periodontogramas pe
 join pacientes p on p.id = pe.paciente_id
 where d.periodontograma_id = pe.id
   and p.celular = '70010001'
   and d.numero_fdi = 16;
+
+update periodontograma_dientes
+set furcacion_vestibular = 'NINGUNA',
+    furcacion_palatina_lingual = 'NINGUNA'
+where numero_fdi not in (16, 17, 18, 26, 27, 28, 36, 37, 38, 46, 47, 48);
 
 update periodontograma_dientes d
 set implante = true,

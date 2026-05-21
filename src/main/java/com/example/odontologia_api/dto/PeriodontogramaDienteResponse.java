@@ -11,7 +11,8 @@ public record PeriodontogramaDienteResponse(
         Boolean ausente,
         Boolean implante,
         Integer movilidad,
-        FurcacionPeriodontograma furcacion,
+        FurcacionPeriodontograma furcacionVestibular,
+        FurcacionPeriodontograma furcacionPalatinaLingual,
         String observacion,
         List<PeriodontogramaSitioResponse> sitios
 ) {

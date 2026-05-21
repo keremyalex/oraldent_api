@@ -12,6 +12,7 @@ import jakarta.persistence.OneToOne;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
+import jakarta.persistence.CascadeType;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
@@ -63,25 +64,8 @@ public class FichaClinica {
     @Column(length = 1000)
     private String enfermedadActual;
 
-    @Column(length = 1000)
-    private String anamnesis;
-
-    private Boolean hemorragia = false;
-    private Boolean diabetes = false;
-    private Boolean hipertension = false;
-    private Boolean epilepsia = false;
-    private Boolean problemasCardiovasculares = false;
-    private Boolean lipotimias = false;
-    private Boolean tratamientoMedicoActual = false;
-
-    @Column(length = 500)
-    private String alergias;
-
-    @Column(length = 500)
-    private String medicamentoActual;
-
-    @Column(length = 500)
-    private String otrasPatologias;
+    @OneToOne(mappedBy = "fichaClinica", cascade = CascadeType.ALL, orphanRemoval = true)
+    private Anamnesis anamnesis;
 
     @Column(length = 1200)
     private String examenClinico;
@@ -151,28 +135,13 @@ public class FichaClinica {
     public void setMotivoConsulta(String motivoConsulta) { this.motivoConsulta = motivoConsulta; }
     public String getEnfermedadActual() { return enfermedadActual; }
     public void setEnfermedadActual(String enfermedadActual) { this.enfermedadActual = enfermedadActual; }
-    public String getAnamnesis() { return anamnesis; }
-    public void setAnamnesis(String anamnesis) { this.anamnesis = anamnesis; }
-    public Boolean getHemorragia() { return hemorragia; }
-    public void setHemorragia(Boolean hemorragia) { this.hemorragia = hemorragia; }
-    public Boolean getDiabetes() { return diabetes; }
-    public void setDiabetes(Boolean diabetes) { this.diabetes = diabetes; }
-    public Boolean getHipertension() { return hipertension; }
-    public void setHipertension(Boolean hipertension) { this.hipertension = hipertension; }
-    public Boolean getEpilepsia() { return epilepsia; }
-    public void setEpilepsia(Boolean epilepsia) { this.epilepsia = epilepsia; }
-    public Boolean getProblemasCardiovasculares() { return problemasCardiovasculares; }
-    public void setProblemasCardiovasculares(Boolean problemasCardiovasculares) { this.problemasCardiovasculares = problemasCardiovasculares; }
-    public Boolean getLipotimias() { return lipotimias; }
-    public void setLipotimias(Boolean lipotimias) { this.lipotimias = lipotimias; }
-    public Boolean getTratamientoMedicoActual() { return tratamientoMedicoActual; }
-    public void setTratamientoMedicoActual(Boolean tratamientoMedicoActual) { this.tratamientoMedicoActual = tratamientoMedicoActual; }
-    public String getAlergias() { return alergias; }
-    public void setAlergias(String alergias) { this.alergias = alergias; }
-    public String getMedicamentoActual() { return medicamentoActual; }
-    public void setMedicamentoActual(String medicamentoActual) { this.medicamentoActual = medicamentoActual; }
-    public String getOtrasPatologias() { return otrasPatologias; }
-    public void setOtrasPatologias(String otrasPatologias) { this.otrasPatologias = otrasPatologias; }
+    public Anamnesis getAnamnesis() { return anamnesis; }
+    public void setAnamnesis(Anamnesis anamnesis) {
+        this.anamnesis = anamnesis;
+        if (anamnesis != null) {
+            anamnesis.setFichaClinica(this);
+        }
+    }
     public String getExamenClinico() { return examenClinico; }
     public void setExamenClinico(String examenClinico) { this.examenClinico = examenClinico; }
     public String getExamenRadiografico() { return examenRadiografico; }

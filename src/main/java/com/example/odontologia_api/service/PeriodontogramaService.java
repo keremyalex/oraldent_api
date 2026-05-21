@@ -129,7 +129,16 @@ public class PeriodontogramaService {
         diente.setAusente(valor(request.ausente(), diente.getAusente()));
         diente.setImplante(valor(request.implante(), diente.getImplante()));
         diente.setMovilidad(request.movilidad());
-        diente.setFurcacion(request.furcacion() == null ? diente.getFurcacion() : request.furcacion());
+        diente.setFurcacionVestibular(resolverFurcacion(
+                diente.getNumeroFdi(),
+                request.furcacionVestibular(),
+                diente.getFurcacionVestibular()
+        ));
+        diente.setFurcacionPalatinaLingual(resolverFurcacion(
+                diente.getNumeroFdi(),
+                request.furcacionPalatinaLingual(),
+                diente.getFurcacionPalatinaLingual()
+        ));
         diente.setObservacion(request.observacion());
         return toResponse(periodontogramaRepository.save(periodontograma));
     }
@@ -182,7 +191,8 @@ public class PeriodontogramaService {
                 diente.setCuadrante(cuadrante);
                 diente.setPosicion(posicion);
                 diente.setNumeroFdi(cuadrante * 10 + posicion);
-                diente.setFurcacion(FurcacionPeriodontograma.NINGUNA);
+                diente.setFurcacionVestibular(FurcacionPeriodontograma.NINGUNA);
+                diente.setFurcacionPalatinaLingual(FurcacionPeriodontograma.NINGUNA);
                 for (SitioPeriodontograma sitio : SitioPeriodontograma.values()) {
                     PeriodontogramaSitio registro = new PeriodontogramaSitio();
                     registro.setSitio(sitio);
@@ -218,6 +228,24 @@ public class PeriodontogramaService {
         return nuevoValor == null ? valorActual : nuevoValor;
     }
 
+    private FurcacionPeriodontograma resolverFurcacion(
+            Integer numeroFdi,
+            FurcacionPeriodontograma nuevaFurcacion,
+            FurcacionPeriodontograma furcacionActual
+    ) {
+        if (!permiteFurcacion(numeroFdi)) {
+            return FurcacionPeriodontograma.NINGUNA;
+        }
+        return nuevaFurcacion == null ? furcacionActual : nuevaFurcacion;
+    }
+
+    private boolean permiteFurcacion(Integer numeroFdi) {
+        return switch (numeroFdi) {
+            case 16, 17, 18, 26, 27, 28, 36, 37, 38, 46, 47, 48 -> true;
+            default -> false;
+        };
+    }
+
     private PeriodontogramaResponse toResponse(Periodontograma periodontograma) {
         List<PeriodontogramaDienteResponse> dientes = periodontograma.getDientes().stream()
                 .sorted(Comparator.comparing(PeriodontogramaDiente::getNumeroFdi))
@@ -250,7 +278,12 @@ public class PeriodontogramaService {
                 diente.getAusente(),
                 diente.getImplante(),
                 diente.getMovilidad(),
-                diente.getFurcacion(),
+                permiteFurcacion(diente.getNumeroFdi())
+                        ? diente.getFurcacionVestibular()
+                        : FurcacionPeriodontograma.NINGUNA,
+                permiteFurcacion(diente.getNumeroFdi())
+                        ? diente.getFurcacionPalatinaLingual()
+                        : FurcacionPeriodontograma.NINGUNA,
                 diente.getObservacion(),
                 sitios
         );

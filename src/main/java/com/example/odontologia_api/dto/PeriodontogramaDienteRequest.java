@@ -9,7 +9,8 @@ public record PeriodontogramaDienteRequest(
         Boolean ausente,
         Boolean implante,
         @Min(0) @Max(3) Integer movilidad,
-        FurcacionPeriodontograma furcacion,
+        FurcacionPeriodontograma furcacionVestibular,
+        FurcacionPeriodontograma furcacionPalatinaLingual,
         @Size(max = 500) String observacion
 ) {
 }
