@@ -6,7 +6,12 @@ import com.example.odontologia_api.dto.OdontogramaDienteRequest;
 import com.example.odontologia_api.dto.OdontogramaObservacionesRequest;
 import com.example.odontologia_api.dto.OdontogramaResponse;
 import com.example.odontologia_api.enums.TipoCaraOdontograma;
+import com.example.odontologia_api.service.OdontogramaPdfService;
 import com.example.odontologia_api.service.OdontogramaService;
+import org.springframework.http.ContentDisposition;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -27,9 +32,11 @@ import org.springframework.web.bind.annotation.RestController;
 public class OdontogramaController {
 
     private final OdontogramaService odontogramaService;
+    private final OdontogramaPdfService odontogramaPdfService;
 
-    public OdontogramaController(OdontogramaService odontogramaService) {
+    public OdontogramaController(OdontogramaService odontogramaService, OdontogramaPdfService odontogramaPdfService) {
         this.odontogramaService = odontogramaService;
+        this.odontogramaPdfService = odontogramaPdfService;
     }
 
     @GetMapping("/fichas/{fichaId}/odontograma")
@@ -45,6 +52,17 @@ public class OdontogramaController {
             @RequestParam(required = false) String observaciones
     ) {
         return odontogramaService.crearParaFicha(fichaId, observaciones);
+    }
+
+    @GetMapping(value = "/odontogramas/{odontogramaId}/pdf", produces = MediaType.APPLICATION_PDF_VALUE)
+    @Operation(summary = "Descargar odontograma en PDF")
+    public ResponseEntity<byte[]> descargarPdf(@PathVariable Long odontogramaId) {
+        byte[] pdf = odontogramaPdfService.generarPdf(odontogramaId);
+        String filename = "odontograma-" + odontogramaId + ".pdf";
+        return ResponseEntity.ok()
+                .contentType(MediaType.APPLICATION_PDF)
+                .header(HttpHeaders.CONTENT_DISPOSITION, ContentDisposition.attachment().filename(filename).build().toString())
+                .body(pdf);
     }
 
     @PutMapping("/odontogramas/{odontogramaId}/observaciones")
@@ -86,3 +104,4 @@ public class OdontogramaController {
         return odontogramaService.actualizarCara(odontogramaId, numeroFdi, tipo, request);
     }
 }
+

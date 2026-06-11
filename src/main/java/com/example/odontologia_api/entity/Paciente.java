@@ -31,7 +31,7 @@ public class Paciente {
     @Column(nullable = false, length = 30)
     private String celular;
 
-    @Column(length = 30)
+    @Column(nullable = false, unique = true, length = 30)
     private String documentoIdentidad;
 
     @Column(length = 120)
@@ -41,6 +41,9 @@ public class Paciente {
 
     @Column(length = 200)
     private String direccion;
+
+    @Column(nullable = false, unique = true, length = 20)
+    private String codigoPaciente;
 
     @Column(length = 500)
     private String fotoUrl;
@@ -136,6 +139,14 @@ public class Paciente {
         this.direccion = direccion;
     }
 
+    public String getCodigoPaciente() {
+        return codigoPaciente;
+    }
+
+    public void setCodigoPaciente(String codigoPaciente) {
+        this.codigoPaciente = codigoPaciente;
+    }
+
     public String getFotoUrl() {
         return fotoUrl;
     }
@@ -168,3 +179,4 @@ public class Paciente {
         return fechaActualizacion;
     }
 }
+

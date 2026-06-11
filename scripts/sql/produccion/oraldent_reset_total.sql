@@ -9,6 +9,10 @@ drop table if exists periodontogramas cascade;
 drop table if exists odontograma_caras cascade;
 drop table if exists odontograma_dientes cascade;
 drop table if exists odontogramas cascade;
+drop table if exists analisis_radiografias cascade;
+drop table if exists radiografias cascade;
+drop table if exists receta_detalles cascade;
+drop table if exists recetas cascade;
 drop table if exists fichas_clinicas cascade;
 drop table if exists citas cascade;
 drop table if exists usuarios cascade;
@@ -23,15 +27,18 @@ create table pacientes (
     apellido_paterno varchar(80) not null,
     apellido_materno varchar(80),
     celular varchar(30) not null,
-    documento_identidad varchar(30),
+    documento_identidad varchar(30) not null,
     correo varchar(120),
     fecha_nacimiento date,
     direccion varchar(200),
+    codigo_paciente varchar(20),
     foto_url varchar(500),
     foto_public_id varchar(255),
     activo boolean not null default true,
     fecha_creacion timestamp without time zone not null default now(),
-    fecha_actualizacion timestamp without time zone not null default now()
+    fecha_actualizacion timestamp without time zone not null default now(),
+    constraint uk_pacientes_codigo_paciente unique (codigo_paciente),
+    constraint uk_pacientes_documento_identidad unique (documento_identidad)
 );
 
 create table servicios (
@@ -141,6 +148,66 @@ create table fichas_clinicas (
     constraint ck_fichas_pulso check (pulso is null or pulso between 0 and 260)
 );
 
+
+create table radiografias (
+    id bigserial primary key,
+    ficha_clinica_id bigint not null,
+    titulo varchar(160) not null,
+    descripcion varchar(500),
+    tipo varchar(80),
+    numero_fdi integer,
+    zona varchar(80),
+    imagen_url varchar(500) not null,
+    imagen_public_id varchar(255) not null,
+    nombre_archivo varchar(255),
+    formato varchar(80),
+    tamano_bytes bigint,
+    ancho_px integer,
+    alto_px integer,
+    fecha_estudio date,
+    diagnostico_radiografico varchar(1000),
+    perdida_osea_observada boolean default false,
+    tipo_perdida_osea varchar(30),
+    severidad_perdida_osea varchar(30),
+    porcentaje_perdida_osea_estimado numeric(5, 2),
+    nivel_cresta_osea_mm numeric(6, 2),
+    observaciones_periodontales varchar(1000),
+    activo boolean not null default true,
+    fecha_creacion timestamp without time zone not null default now(),
+    fecha_actualizacion timestamp without time zone not null default now(),
+    constraint fk_radiografias_ficha foreign key (ficha_clinica_id) references fichas_clinicas (id),
+    constraint ck_radiografias_numero_fdi check (numero_fdi is null or numero_fdi between 11 and 48),
+    constraint ck_radiografias_porcentaje_perdida check (porcentaje_perdida_osea_estimado is null or porcentaje_perdida_osea_estimado between 0 and 100),
+    constraint ck_radiografias_nivel_cresta check (nivel_cresta_osea_mm is null or nivel_cresta_osea_mm >= 0)
+);
+
+create table analisis_radiografias (
+    id bigserial primary key,
+    radiografia_id bigint not null,
+    modelo varchar(120),
+    estado varchar(30) not null default 'PENDIENTE',
+    perdida_osea_detectada boolean default false,
+    tipo_perdida_osea varchar(30),
+    severidad varchar(30),
+    porcentaje_perdida_osea numeric(5, 2),
+    confianza numeric(5, 4),
+    resultado_json text,
+    recomendacion varchar(1000),
+    error_analisis varchar(1000),
+    validado boolean default false,
+    validado_por_usuario_id bigint,
+    fecha_validacion timestamp without time zone,
+    comentario_validacion varchar(1000),
+    severidad_final varchar(30),
+    tipo_perdida_osea_final varchar(30),
+    activo boolean not null default true,
+    fecha_creacion timestamp without time zone not null default now(),
+    fecha_actualizacion timestamp without time zone not null default now(),
+    constraint fk_analisis_radiografia foreign key (radiografia_id) references radiografias (id) on delete cascade,
+    constraint fk_analisis_radiografia_usuario foreign key (validado_por_usuario_id) references usuarios (id),
+    constraint ck_analisis_porcentaje_perdida check (porcentaje_perdida_osea is null or porcentaje_perdida_osea between 0 and 100),
+    constraint ck_analisis_confianza check (confianza is null or confianza between 0 and 1)
+);
 create table anamnesis (
     id bigserial primary key,
     ficha_clinica_id bigint not null unique,
@@ -254,8 +321,35 @@ create table periodontograma_sitios (
     constraint uk_periodontograma_sitios_tipo unique (diente_id, sitio)
 );
 
+create table recetas (
+    id bigserial primary key,
+    ficha_clinica_id bigint not null,
+    usuario_id bigint,
+    indicaciones_generales varchar(1200),
+    observaciones varchar(1200),
+    activo boolean not null default true,
+    fecha_creacion timestamp without time zone not null default now(),
+    fecha_actualizacion timestamp without time zone not null default now(),
+    constraint fk_recetas_ficha foreign key (ficha_clinica_id) references fichas_clinicas (id),
+    constraint fk_recetas_usuario foreign key (usuario_id) references usuarios (id)
+);
+
+create table receta_detalles (
+    id bigserial primary key,
+    receta_id bigint not null,
+    medicamento varchar(160) not null,
+    dosis varchar(120),
+    frecuencia varchar(120),
+    duracion varchar(120),
+    indicaciones varchar(500),
+    orden integer not null default 0,
+    constraint fk_receta_detalles_receta foreign key (receta_id) references recetas (id) on delete cascade,
+    constraint ck_receta_detalles_orden check (orden >= 0)
+);
+
 create index idx_pacientes_celular on pacientes (celular);
 create index idx_pacientes_correo on pacientes (correo);
+create index idx_pacientes_documento_identidad on pacientes (documento_identidad);
 create index idx_citas_paciente_id on citas (paciente_id);
 create index idx_citas_usuario_id on citas (usuario_id);
 create index idx_citas_servicio_id on citas (servicio_id);
@@ -269,6 +363,10 @@ create index idx_odontograma_caras_diente_id on odontograma_caras (diente_id);
 create index idx_periodontogramas_ficha_id on periodontogramas (ficha_clinica_id);
 create index idx_periodontograma_dientes_periodontograma_id on periodontograma_dientes (periodontograma_id);
 create index idx_periodontograma_sitios_diente_id on periodontograma_sitios (diente_id);
+create index idx_recetas_ficha_id on recetas (ficha_clinica_id);
+create index idx_recetas_usuario_id on recetas (usuario_id);
+create index idx_receta_detalles_receta_id on receta_detalles (receta_id);
+create index idx_radiografias_ficha_id on radiografias (ficha_clinica_id);
 
 insert into servicios (nombre, descripcion, activo)
 values
@@ -422,6 +520,12 @@ values
         'ORALA006',
         'Control sabatino.'
     );
+
+update pacientes
+set codigo_paciente = 'PAC-' || lpad(id::text, 6, '0')
+where codigo_paciente is null;
+
+alter table pacientes alter column codigo_paciente set not null;
 
 insert into fichas_clinicas (
     paciente_id,
@@ -824,4 +928,137 @@ where s.diente_id = d.id
   and d.numero_fdi = 36
   and s.sitio = 'DISTOPALATINO';
 
+insert into recetas (ficha_clinica_id, usuario_id, indicaciones_generales, observaciones, activo)
+select f.id, 1,
+       'Tomar los medicamentos segun indicacion profesional y completar el tratamiento.',
+       'Receta inicial de control clinico.',
+       true
+from fichas_clinicas f
+join pacientes p on p.id = f.paciente_id
+where p.celular = '70010001'
+  and not exists (
+      select 1 from recetas r where r.ficha_clinica_id = f.id
+  );
+
+insert into recetas (ficha_clinica_id, usuario_id, indicaciones_generales, observaciones, activo)
+select f.id, 1,
+       'Mantener higiene oral estricta y seguir esquema antibiotico si fue indicado.',
+       'Receta para manejo de dolor y control.',
+       true
+from fichas_clinicas f
+join pacientes p on p.id = f.paciente_id
+where p.celular = '70010002'
+  and not exists (
+      select 1 from recetas r where r.ficha_clinica_id = f.id
+  );
+
+insert into receta_detalles (receta_id, medicamento, dosis, frecuencia, duracion, indicaciones, orden)
+select r.id, d.medicamento, d.dosis, d.frecuencia, d.duracion, d.indicaciones, d.orden
+from recetas r
+join fichas_clinicas f on f.id = r.ficha_clinica_id
+join pacientes p on p.id = f.paciente_id
+join (
+    values
+        ('70010001', 'Ibuprofeno', '400 mg', 'Cada 8 horas', '5 dias', 'Tomar despues de las comidas.', 0),
+        ('70010001', 'Clorhexidina', '15 ml', 'Cada 12 horas', '7 dias', 'Enjuague bucal sin ingerir.', 1),
+        ('70010002', 'Paracetamol', '500 mg', 'Cada 8 horas si hay dolor', '3 dias', 'No exceder la dosis diaria.', 0),
+        ('70010002', 'Amoxicilina', '500 mg', 'Cada 8 horas', '7 dias', 'Completar el tratamiento salvo contraindicacion.', 1)
+) as d(celular, medicamento, dosis, frecuencia, duracion, indicaciones, orden)
+    on d.celular = p.celular
+where not exists (
+    select 1
+    from receta_detalles rd
+    where rd.receta_id = r.id
+      and rd.orden = d.orden
+);
+
+
+insert into radiografias (ficha_clinica_id, titulo, descripcion, tipo, numero_fdi, zona, imagen_url, imagen_public_id, fecha_estudio, diagnostico_radiografico, perdida_osea_observada, tipo_perdida_osea, severidad_perdida_osea, porcentaje_perdida_osea_estimado, observaciones_periodontales, activo)
+select f.id,
+       'Radiografia panoramica inicial',
+       'Imagen de apoyo diagnostico para la ficha clinica.',
+       'PANORAMICA',
+       null,
+       'GENERAL',
+       'https://res.cloudinary.com/demo/image/upload/sample.jpg',
+       'oraldent/demo/radiografia-panoramica-inicial',
+       f.fecha::date,
+       'Evaluacion panoramica de apoyo diagnostico.',
+       false,
+       'NO_EVALUABLE',
+       'NO_EVALUABLE',
+       null,
+       'Imagen referencial para historial clinico.',
+       true
+from fichas_clinicas f
+join pacientes p on p.id = f.paciente_id
+where p.celular = '70010001'
+  and not exists (
+      select 1 from radiografias r where r.ficha_clinica_id = f.id and r.titulo = 'Radiografia panoramica inicial'
+  );
+
+insert into radiografias (ficha_clinica_id, titulo, descripcion, tipo, numero_fdi, zona, imagen_url, imagen_public_id, fecha_estudio, diagnostico_radiografico, perdida_osea_observada, tipo_perdida_osea, severidad_perdida_osea, porcentaje_perdida_osea_estimado, observaciones_periodontales, activo)
+select f.id,
+       'Radiografia periapical de control',
+       'Control radiografico localizado para seguimiento.',
+       'PERIAPICAL',
+       36,
+       'POSTERIOR_INFERIOR',
+       'https://res.cloudinary.com/demo/image/upload/sample.jpg',
+       'oraldent/demo/radiografia-periapical-control',
+       f.fecha::date,
+       'Cresta osea con perdida horizontal compatible con compromiso periodontal.',
+       true,
+       'HORIZONTAL',
+       'MODERADA',
+       32.50,
+       'Se sugiere correlacionar con sondaje periodontal.',
+       true
+from fichas_clinicas f
+join pacientes p on p.id = f.paciente_id
+where p.celular = '70010002'
+  and not exists (
+      select 1 from radiografias r where r.ficha_clinica_id = f.id and r.titulo = 'Radiografia periapical de control'
+  );
+insert into analisis_radiografias (
+    radiografia_id,
+    modelo,
+    estado,
+    perdida_osea_detectada,
+    tipo_perdida_osea,
+    severidad,
+    porcentaje_perdida_osea,
+    confianza,
+    resultado_json,
+    recomendacion,
+    validado,
+    severidad_final,
+    tipo_perdida_osea_final,
+    activo
+)
+select
+    r.id,
+    'perdida-osea-demo-v1',
+    'COMPLETADO',
+    true,
+    'HORIZONTAL',
+    'MODERADA',
+    32.50,
+    0.8700,
+    '{"hallazgo":"perdida osea horizontal estimada","pieza":36}',
+    'Revisar evolucion periodontal y comparar con periodontograma.',
+    false,
+    null,
+    null,
+    true
+from radiografias r
+where r.tipo = 'PERIAPICAL'
+  and r.numero_fdi = 36
+  and not exists (
+      select 1 from analisis_radiografias ar where ar.radiografia_id = r.id
+  );
+
 commit;
+
+
+

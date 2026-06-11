@@ -1,6 +1,7 @@
 package com.example.odontologia_api.repository;
 
 import com.example.odontologia_api.entity.Cita;
+import com.example.odontologia_api.entity.Paciente;
 import com.example.odontologia_api.enums.EstadoCita;
 import java.time.LocalDateTime;
 import java.util.Collection;
@@ -19,6 +20,8 @@ public interface CitaRepository extends JpaRepository<Cita, Long> {
     List<Cita> findAllByOrderByFechaHoraInicioAsc();
 
     List<Cita> findByFechaHoraInicioBetweenOrderByFechaHoraInicioAsc(LocalDateTime inicio, LocalDateTime fin);
+
+    List<Cita> findByPacienteOrderByFechaHoraInicioDescIdDesc(Paciente paciente);
 
     Optional<Cita> findByIdAndCodigoGestion(Long id, String codigoGestion);
 

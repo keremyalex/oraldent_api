@@ -11,7 +11,7 @@ public record PacienteRequest(
         @NotBlank @Size(max = 80) String apellidoPaterno,
         @Size(max = 80) String apellidoMaterno,
         @NotBlank @Size(max = 30) String celular,
-        @Size(max = 30) String documentoIdentidad,
+        @NotBlank @Size(max = 30) String documentoIdentidad,
         @Email @Size(max = 120) String correo,
         @Past LocalDate fechaNacimiento,
         @Size(max = 200) String direccion,

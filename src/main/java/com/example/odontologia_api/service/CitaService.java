@@ -213,7 +213,7 @@ public class CitaService {
         return codigo.toString();
     }
 
-    private CitaResponse toResponse(Cita cita) {
+    public CitaResponse toResponse(Cita cita) {
         return new CitaResponse(
                 cita.getId(),
                 pacienteService.toResponse(cita.getPaciente()),

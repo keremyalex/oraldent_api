@@ -1,6 +1,7 @@
 package com.example.odontologia_api.config;
 
 import com.example.odontologia_api.security.JwtAuthenticationFilter;
+import com.example.odontologia_api.security.PortalPacienteAuthenticationFilter;
 import com.example.odontologia_api.security.RestAuthenticationEntryPoint;
 import com.example.odontologia_api.security.UsuarioDetailsService;
 import java.util.List;
@@ -27,15 +28,18 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
+    private final PortalPacienteAuthenticationFilter portalPacienteAuthenticationFilter;
     private final UsuarioDetailsService usuarioDetailsService;
     private final RestAuthenticationEntryPoint restAuthenticationEntryPoint;
 
     public SecurityConfig(
             JwtAuthenticationFilter jwtAuthenticationFilter,
+            PortalPacienteAuthenticationFilter portalPacienteAuthenticationFilter,
             UsuarioDetailsService usuarioDetailsService,
             RestAuthenticationEntryPoint restAuthenticationEntryPoint
     ) {
         this.jwtAuthenticationFilter = jwtAuthenticationFilter;
+        this.portalPacienteAuthenticationFilter = portalPacienteAuthenticationFilter;
         this.usuarioDetailsService = usuarioDetailsService;
         this.restAuthenticationEntryPoint = restAuthenticationEntryPoint;
     }
@@ -55,6 +59,7 @@ public class SecurityConfig {
                                 "/error"
                         ).permitAll()
                         .requestMatchers("/api/auth/login", "/api/auth/register/**").permitAll()
+                        .requestMatchers("/api/portal-paciente/acceso").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/servicios/**").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/citas").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/citas/disponibilidad").permitAll()
@@ -72,9 +77,13 @@ public class SecurityConfig {
                         .requestMatchers("/api/fichas/**", "/api/pacientes/*/fichas").hasAnyRole("ADMIN", "DOCTOR", "RECEPCION")
                         .requestMatchers("/api/odontogramas/**", "/api/pacientes/*/odontograma", "/api/pacientes/*/odontogramas").hasAnyRole("ADMIN", "DOCTOR", "RECEPCION")
                         .requestMatchers("/api/periodontogramas/**", "/api/pacientes/*/periodontograma", "/api/pacientes/*/periodontogramas").hasAnyRole("ADMIN", "DOCTOR", "RECEPCION")
+                        .requestMatchers("/api/recetas/**", "/api/fichas/*/recetas").hasAnyRole("ADMIN", "DOCTOR", "RECEPCION")
+                        .requestMatchers("/api/radiografias/**", "/api/fichas/*/radiografias").hasAnyRole("ADMIN", "DOCTOR", "RECEPCION")
+                        .requestMatchers("/api/portal-paciente/**").hasRole("PORTAL_PACIENTE")
                         .anyRequest().authenticated()
                 )
                 .authenticationProvider(authenticationProvider())
+                .addFilterBefore(portalPacienteAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
@@ -117,3 +126,9 @@ public class SecurityConfig {
         return source;
     }
 }
+
+
+
+
+
+

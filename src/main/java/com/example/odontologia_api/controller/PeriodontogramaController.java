@@ -5,7 +5,12 @@ import com.example.odontologia_api.dto.PeriodontogramaObservacionesRequest;
 import com.example.odontologia_api.dto.PeriodontogramaResponse;
 import com.example.odontologia_api.dto.PeriodontogramaSitioRequest;
 import com.example.odontologia_api.enums.SitioPeriodontograma;
+import com.example.odontologia_api.service.PeriodontogramaPdfService;
 import com.example.odontologia_api.service.PeriodontogramaService;
+import org.springframework.http.ContentDisposition;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -26,9 +31,14 @@ import org.springframework.web.bind.annotation.RestController;
 public class PeriodontogramaController {
 
     private final PeriodontogramaService periodontogramaService;
+    private final PeriodontogramaPdfService periodontogramaPdfService;
 
-    public PeriodontogramaController(PeriodontogramaService periodontogramaService) {
+    public PeriodontogramaController(
+            PeriodontogramaService periodontogramaService,
+            PeriodontogramaPdfService periodontogramaPdfService
+    ) {
         this.periodontogramaService = periodontogramaService;
+        this.periodontogramaPdfService = periodontogramaPdfService;
     }
 
     @GetMapping("/fichas/{fichaId}/periodontograma")
@@ -44,6 +54,17 @@ public class PeriodontogramaController {
             @RequestParam(required = false) String observaciones
     ) {
         return periodontogramaService.crearParaFicha(fichaId, observaciones);
+    }
+
+    @GetMapping(value = "/periodontogramas/{periodontogramaId}/pdf", produces = MediaType.APPLICATION_PDF_VALUE)
+    @Operation(summary = "Descargar periodontograma en PDF")
+    public ResponseEntity<byte[]> descargarPdf(@PathVariable Long periodontogramaId) {
+        byte[] pdf = periodontogramaPdfService.generarPdf(periodontogramaId);
+        String filename = "periodontograma-" + periodontogramaId + ".pdf";
+        return ResponseEntity.ok()
+                .contentType(MediaType.APPLICATION_PDF)
+                .header(HttpHeaders.CONTENT_DISPOSITION, ContentDisposition.attachment().filename(filename).build().toString())
+                .body(pdf);
     }
 
     @PutMapping("/periodontogramas/{periodontogramaId}/observaciones")
@@ -76,3 +97,4 @@ public class PeriodontogramaController {
         return periodontogramaService.actualizarSitio(periodontogramaId, numeroFdi, sitio, request);
     }
 }
+

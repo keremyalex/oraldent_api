@@ -13,7 +13,7 @@ public record RegisterPacienteRequest(
         @Email @Size(max = 120) String correo,
         @NotBlank @Pattern(regexp = "^[0-9]{7,15}$") String celular,
         @NotBlank @Size(min = 8, max = 72) String password,
-        @Size(max = 30) String documentoIdentidad,
+        @NotBlank @Size(max = 30) String documentoIdentidad,
         LocalDate fechaNacimiento,
         @Size(max = 200) String direccion,
         @Size(max = 500) String fotoUrl

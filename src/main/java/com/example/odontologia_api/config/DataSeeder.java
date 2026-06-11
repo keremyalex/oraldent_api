@@ -34,6 +34,7 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.Period;
 import java.util.Optional;
+import java.util.UUID;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -266,6 +267,7 @@ public class DataSeeder implements CommandLineRunner {
         if (porCelular.isPresent()) {
             Paciente paciente = porCelular.get();
             actualizarPaciente(paciente, nombre, paterno, materno, celular, correo, documentoIdentidad, fechaNacimiento, direccion);
+            asegurarCodigoPaciente(paciente);
             return pacienteRepository.save(paciente);
         }
 
@@ -273,12 +275,33 @@ public class DataSeeder implements CommandLineRunner {
         if (porCorreo.isPresent()) {
             Paciente paciente = porCorreo.get();
             actualizarPaciente(paciente, nombre, paterno, materno, celular, correo, documentoIdentidad, fechaNacimiento, direccion);
+            asegurarCodigoPaciente(paciente);
             return pacienteRepository.save(paciente);
         }
 
         Paciente paciente = new Paciente();
         actualizarPaciente(paciente, nombre, paterno, materno, celular, correo, documentoIdentidad, fechaNacimiento, direccion);
+        asegurarCodigoPaciente(paciente);
         return pacienteRepository.save(paciente);
+    }
+
+    private Paciente asegurarCodigoPaciente(Paciente paciente) {
+        if (paciente.getCodigoPaciente() != null && !paciente.getCodigoPaciente().isBlank()) {
+            return paciente;
+        }
+        if (paciente.getId() != null) {
+            String codigoPorId = "PAC-" + String.format("%06d", paciente.getId());
+            if (!pacienteRepository.existsByCodigoPacienteIgnoreCase(codigoPorId)) {
+                paciente.setCodigoPaciente(codigoPorId);
+                return paciente;
+            }
+        }
+        String codigoTemporal;
+        do {
+            codigoTemporal = "PAC-" + UUID.randomUUID().toString().replace("-", "").substring(0, 8).toUpperCase();
+        } while (pacienteRepository.existsByCodigoPacienteIgnoreCase(codigoTemporal));
+        paciente.setCodigoPaciente(codigoTemporal);
+        return paciente;
     }
 
     private void actualizarPaciente(
@@ -598,3 +621,7 @@ public class DataSeeder implements CommandLineRunner {
                 });
     }
 }
+
+
+
+

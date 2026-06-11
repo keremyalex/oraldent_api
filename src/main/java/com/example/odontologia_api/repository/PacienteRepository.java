@@ -6,10 +6,10 @@ import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface PacienteRepository extends JpaRepository<Paciente, Long> {
-
     List<Paciente> findByActivoTrueOrderByApellidoPaternoAscApellidoMaternoAscNombreAsc();
-
     Optional<Paciente> findFirstByCelularAndActivoTrueOrderByIdDesc(String celular);
-
     Optional<Paciente> findFirstByCorreoIgnoreCaseAndActivoTrueOrderByIdDesc(String correo);
+    Optional<Paciente> findFirstByCodigoPacienteIgnoreCaseAndActivoTrue(String codigoPaciente);
+    Optional<Paciente> findFirstByDocumentoIdentidadIgnoreCase(String documentoIdentidad);
+    boolean existsByCodigoPacienteIgnoreCase(String codigoPaciente);
 }
