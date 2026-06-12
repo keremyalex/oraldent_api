@@ -114,7 +114,8 @@ public class SecurityConfig {
                 "http://127.0.0.1:4200",
                 "http://localhost:5173",
                 "http://127.0.0.1:5173",
-                "https://oraldent.keremy.com"
+                "https://oraldent.keremy.com",
+                "https://oraldent-dev.keremy.com"
         ));
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("*"));
