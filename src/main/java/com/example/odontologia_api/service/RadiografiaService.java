@@ -35,19 +35,22 @@ public class RadiografiaService {
     private final UsuarioRepository usuarioRepository;
     private final FichaClinicaService fichaClinicaService;
     private final CloudinaryService cloudinaryService;
+    private final RadiografiaIaService radiografiaIaService;
 
     public RadiografiaService(
             RadiografiaRepository radiografiaRepository,
             AnalisisRadiografiaRepository analisisRadiografiaRepository,
             UsuarioRepository usuarioRepository,
             FichaClinicaService fichaClinicaService,
-            CloudinaryService cloudinaryService
+            CloudinaryService cloudinaryService,
+            RadiografiaIaService radiografiaIaService
     ) {
         this.radiografiaRepository = radiografiaRepository;
         this.analisisRadiografiaRepository = analisisRadiografiaRepository;
         this.usuarioRepository = usuarioRepository;
         this.fichaClinicaService = fichaClinicaService;
         this.cloudinaryService = cloudinaryService;
+        this.radiografiaIaService = radiografiaIaService;
     }
 
     @Transactional(readOnly = true)
@@ -108,6 +111,22 @@ public class RadiografiaService {
         Radiografia radiografia = buscarActiva(radiografiaId);
         radiografia.setActivo(false);
         radiografiaRepository.save(radiografia);
+    }
+
+    @Transactional
+    public AnalisisRadiografiaResponse analizarConIa(Long radiografiaId) {
+        Radiografia radiografia = buscarActiva(radiografiaId);
+        AnalisisRadiografia analisis = radiografiaIaService.analizar(radiografia);
+        AnalisisRadiografia saved = analisisRadiografiaRepository.save(analisis);
+
+        radiografia.setPerdidaOseaObservada(Boolean.TRUE.equals(saved.getPerdidaOseaDetectada()));
+        radiografia.setTipoPerdidaOsea(saved.getTipoPerdidaOsea());
+        radiografia.setSeveridadPerdidaOsea(saved.getSeveridad());
+        radiografia.setPorcentajePerdidaOseaEstimado(saved.getPorcentajePerdidaOsea());
+        radiografia.setDiagnosticoRadiografico(saved.getRecomendacion());
+        radiografiaRepository.save(radiografia);
+
+        return toResponse(saved);
     }
 
     @Transactional(readOnly = true)

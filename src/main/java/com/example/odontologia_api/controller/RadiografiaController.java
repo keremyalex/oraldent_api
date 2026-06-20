@@ -122,6 +122,13 @@ public class RadiografiaController {
         radiografiaService.desactivar(radiografiaId);
     }
 
+    @PostMapping("/radiografias/{radiografiaId}/analizar-ia")
+    @ResponseStatus(HttpStatus.CREATED)
+    @Operation(summary = "Analizar una radiografia con IA y guardar el resultado")
+    public AnalisisRadiografiaResponse analizarConIa(@PathVariable Long radiografiaId) {
+        return radiografiaService.analizarConIa(radiografiaId);
+    }
+
     @GetMapping("/radiografias/{radiografiaId}/analisis")
     @Operation(summary = "Listar analisis de una radiografia")
     public List<AnalisisRadiografiaResponse> listarAnalisis(@PathVariable Long radiografiaId) {
