@@ -61,7 +61,7 @@ public class RecetaPdfService {
         Usuario usuario = receta.getUsuario();
         float y = page.getMediaBox().getHeight() - 48;
 
-        drawText(content, "CLINICAS ORALDENT", 48, y, 17, BOLD, INK);
+        drawText(content, "CLINICA ORALDENT", 48, y, 17, BOLD, INK);
         drawText(content, "RECETA ODONTOLOGICA", 48, y - 20, 11, BOLD, PRIMARY);
         drawRightText(content, "RECETA No " + receta.getId(), 547, y - 2, 11, BOLD, INK);
         drawRightText(content, "Emitida: " + receta.getFechaCreacion().format(DATE_TIME_FORMAT), 547, y - 18, 8, REGULAR, MUTED);

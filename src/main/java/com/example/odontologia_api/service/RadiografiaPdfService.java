@@ -98,10 +98,10 @@ public class RadiografiaPdfService {
         Paciente paciente = ficha.getPaciente();
         float top = page.getMediaBox().getHeight() - 46;
 
-        drawText(content, "CLINICAS ORALDENT", 48, top, 17, BOLD, INK);
+        drawText(content, "CLINICA ORALDENT", 48, top, 17, BOLD, INK);
         drawText(content, "REPORTE RADIOGRAFICO", 48, top - 20, 11, BOLD, PRIMARY);
         drawRightText(content, "RADIOGRAFIA No " + radiografia.getId(), 547, top - 2, 10, BOLD, INK);
-        drawRightText(content, "Generado: " + radiografia.getFechaCreacion().format(DATE_TIME_FORMAT), 547, top - 18, 8, REGULAR, MUTED);
+        drawRightText(content, "Fecha: " + radiografia.getFechaCreacion().format(DATE_TIME_FORMAT), 547, top - 18, 8, REGULAR, MUTED);
         drawLine(content, 48, top - 34, 547, top - 34, PRIMARY, 1.2f);
 
         drawPatientCard(content, paciente, ficha, 716);
@@ -178,7 +178,7 @@ public class RadiografiaPdfService {
 
         String status = enumLabel(analisis.getEstado() == null ? null : analisis.getEstado().name());
         drawLabelValue(content, "Estado", status, 60, top - 34, 215);
-        drawLabelValue(content, "Modelo", value(analisis.getModelo()), 310, top - 34, 220);
+        // drawLabelValue(content, "Modelo", value(analisis.getModelo()), 310, top - 34, 220);
         drawLabelValue(content, "Perdida estimada", percent(analisis.getPorcentajePerdidaOsea()), 60, top - 52, 215);
         drawLabelValue(content, "Confianza", confidence(analisis.getConfianza()), 310, top - 52, 220);
         drawLabelValue(content, "Tipo", enumLabel(finalType(analisis, radiografia)), 60, top - 70, 215);
