@@ -93,6 +93,20 @@ public class PortalPacienteController {
         return portalPacienteService.radiografiasPorFicha(pacienteDetails.pacienteId(), fichaId);
     }
 
+    @GetMapping(value = "/radiografias/{radiografiaId}/pdf", produces = MediaType.APPLICATION_PDF_VALUE)
+    @Operation(summary = "Descargar reporte PDF de radiografia del paciente autenticado")
+    public ResponseEntity<byte[]> descargarRadiografiaPdf(
+            @AuthenticationPrincipal PortalPacienteDetails pacienteDetails,
+            @PathVariable Long radiografiaId
+    ) {
+        byte[] pdf = portalPacienteService.radiografiaPdf(pacienteDetails.pacienteId(), radiografiaId);
+        String filename = "radiografia-" + radiografiaId + ".pdf";
+        return ResponseEntity.ok()
+                .contentType(MediaType.APPLICATION_PDF)
+                .header(HttpHeaders.CONTENT_DISPOSITION, ContentDisposition.attachment().filename(filename).build().toString())
+                .body(pdf);
+    }
+
     @GetMapping(value = "/odontogramas/{odontogramaId}/pdf", produces = MediaType.APPLICATION_PDF_VALUE)
     @Operation(summary = "Descargar odontograma PDF del paciente autenticado")
     public ResponseEntity<byte[]> descargarOdontogramaPdf(

@@ -7,6 +7,7 @@ import com.example.odontologia_api.dto.RadiografiaResponse;
 import com.example.odontologia_api.enums.SeveridadPerdidaOsea;
 import com.example.odontologia_api.enums.TipoPerdidaOsea;
 import com.example.odontologia_api.security.UsuarioDetails;
+import com.example.odontologia_api.service.RadiografiaPdfService;
 import com.example.odontologia_api.service.RadiografiaService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -15,8 +16,11 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.http.ContentDisposition;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -39,9 +43,14 @@ import org.springframework.web.multipart.MultipartFile;
 public class RadiografiaController {
 
     private final RadiografiaService radiografiaService;
+    private final RadiografiaPdfService radiografiaPdfService;
 
-    public RadiografiaController(RadiografiaService radiografiaService) {
+    public RadiografiaController(
+            RadiografiaService radiografiaService,
+            RadiografiaPdfService radiografiaPdfService
+    ) {
         this.radiografiaService = radiografiaService;
+        this.radiografiaPdfService = radiografiaPdfService;
     }
 
     @GetMapping("/fichas/{fichaId}/radiografias")
@@ -89,6 +98,17 @@ public class RadiografiaController {
                 ),
                 archivo
         );
+    }
+
+    @GetMapping(value = "/radiografias/{radiografiaId}/pdf", produces = MediaType.APPLICATION_PDF_VALUE)
+    @Operation(summary = "Descargar reporte PDF de una radiografia")
+    public ResponseEntity<byte[]> descargarPdf(@PathVariable Long radiografiaId) {
+        byte[] pdf = radiografiaPdfService.generarPdf(radiografiaId);
+        String filename = "radiografia-" + radiografiaId + ".pdf";
+        return ResponseEntity.ok()
+                .contentType(MediaType.APPLICATION_PDF)
+                .header(HttpHeaders.CONTENT_DISPOSITION, ContentDisposition.attachment().filename(filename).build().toString())
+                .body(pdf);
     }
 
     @GetMapping("/radiografias/{radiografiaId}")

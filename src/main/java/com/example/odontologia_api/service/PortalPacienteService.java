@@ -42,6 +42,7 @@ public class PortalPacienteService {
     private final RecetaPdfService recetaPdfService;
     private final OdontogramaPdfService odontogramaPdfService;
     private final PeriodontogramaPdfService periodontogramaPdfService;
+    private final RadiografiaPdfService radiografiaPdfService;
     private final PortalPacienteTokenService tokenService;
 
     public PortalPacienteService(
@@ -58,6 +59,7 @@ public class PortalPacienteService {
             RecetaPdfService recetaPdfService,
             OdontogramaPdfService odontogramaPdfService,
             PeriodontogramaPdfService periodontogramaPdfService,
+            RadiografiaPdfService radiografiaPdfService,
             PortalPacienteTokenService tokenService
     ) {
         this.pacienteRepository = pacienteRepository;
@@ -73,6 +75,7 @@ public class PortalPacienteService {
         this.recetaPdfService = recetaPdfService;
         this.odontogramaPdfService = odontogramaPdfService;
         this.periodontogramaPdfService = periodontogramaPdfService;
+        this.radiografiaPdfService = radiografiaPdfService;
         this.tokenService = tokenService;
     }
 
@@ -144,6 +147,15 @@ public class PortalPacienteService {
                 .stream()
                 .map(radiografia -> radiografiaService.obtener(radiografia.getId()))
                 .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public byte[] radiografiaPdf(Long pacienteId, Long radiografiaId) {
+        Radiografia radiografia = radiografiaPdfService.buscarActiva(radiografiaId);
+        if (!radiografia.getFichaClinica().getPaciente().getId().equals(pacienteId)) {
+            throw new RecursoNoEncontradoException("Radiografia no encontrada.");
+        }
+        return radiografiaPdfService.generarPdf(radiografiaId);
     }
 
     @Transactional(readOnly = true)
