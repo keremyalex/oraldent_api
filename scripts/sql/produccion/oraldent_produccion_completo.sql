@@ -1374,6 +1374,32 @@ where r.tipo = 'PERIAPICAL'
       select 1 from analisis_radiografias ar where ar.radiografia_id = r.id
   );
 
+-- Fechas de demostracion actualizadas desde el 23 de julio de 2026.
+update citas
+set fecha_hora_inicio = case codigo_gestion
+        when 'ORALA001' then timestamp '2026-07-23 08:30:00'
+        when 'ORALA002' then timestamp '2026-07-23 09:00:00'
+        when 'ORALA003' then timestamp '2026-07-23 15:00:00'
+        when 'ORALA004' then timestamp '2026-07-24 08:30:00'
+        when 'ORALA005' then timestamp '2026-07-24 15:00:00'
+        when 'ORALA006' then timestamp '2026-07-25 09:00:00'
+        when 'RDCP6BDR' then timestamp '2026-07-27 08:30:00'
+        else fecha_hora_inicio
+    end,
+    fecha_hora_fin = case codigo_gestion
+        when 'ORALA001' then timestamp '2026-07-23 09:00:00'
+        when 'ORALA002' then timestamp '2026-07-23 09:30:00'
+        when 'ORALA003' then timestamp '2026-07-23 15:30:00'
+        when 'ORALA004' then timestamp '2026-07-24 09:00:00'
+        when 'ORALA005' then timestamp '2026-07-24 15:30:00'
+        when 'ORALA006' then timestamp '2026-07-25 09:30:00'
+        when 'RDCP6BDR' then timestamp '2026-07-27 09:00:00'
+        else fecha_hora_fin
+    end,
+    fecha_actualizacion = timestamp '2026-07-23 08:00:00'
+where codigo_gestion in (
+    'ORALA001', 'ORALA002', 'ORALA003', 'ORALA004',
+    'ORALA005', 'ORALA006', 'RDCP6BDR'
+);
+
 commit;
-
-
