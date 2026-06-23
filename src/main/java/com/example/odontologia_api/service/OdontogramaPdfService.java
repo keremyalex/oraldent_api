@@ -71,7 +71,7 @@ public class OdontogramaPdfService {
         FichaClinica ficha = odontograma.getFichaClinica();
         Paciente paciente = ficha.getPaciente();
         float top = page.getMediaBox().getHeight() - 38;
-        drawText(content, "CLINICAS ORALDENT", 48, top, 16, INK);
+        drawText(content, "CLINICA ORALDENT", 48, top, 16, INK);
         drawText(content, "REPORTE VISUAL DE ODONTOGRAMA", 48, top - 19, 12, PRIMARY);
         drawText(content, "Paciente: " + patientName(paciente), 48, top - 43, 9, Color.DARK_GRAY);
         drawText(content, "Codigo: " + value(paciente.getCodigoPaciente()) + "    Documento: " + value(paciente.getDocumentoIdentidad()), 48, top - 57, 9, Color.DARK_GRAY);

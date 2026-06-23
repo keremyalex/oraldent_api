@@ -99,7 +99,7 @@ public class PeriodontogramaPdfService {
     private void drawHeader(PDPageContentStream content, Periodontograma periodontograma, boolean upper) throws IOException {
         FichaClinica ficha = periodontograma.getFichaClinica();
         Paciente paciente = ficha.getPaciente();
-        drawText(content, "CLINICAS ORALDENT", 28, 558, 14, new Color(15, 23, 42));
+        drawText(content, "CLINICA ORALDENT", 28, 558, 14, new Color(15, 23, 42));
         drawText(content, "REPORTE VISUAL DE PERIODONTOGRAMA - " + (upper ? "ARCADA SUPERIOR" : "ARCADA INFERIOR"), 28, 540, 11, new Color(8, 116, 144));
         drawText(content, "Paciente: " + patientName(paciente), 28, 519, 8, Color.DARK_GRAY);
         drawText(content, "Codigo: " + value(paciente.getCodigoPaciente()) + "    Documento: " + value(paciente.getDocumentoIdentidad()), 28, 506, 8, Color.DARK_GRAY);
